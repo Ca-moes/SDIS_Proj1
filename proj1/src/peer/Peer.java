@@ -7,17 +7,21 @@ import messages.MulticastService;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.nio.charset.StandardCharsets;
+import java.rmi.RemoteException;
+import java.rmi.registry.LocateRegistry;
+import java.rmi.registry.Registry;
+import java.rmi.server.UnicastRemoteObject;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class Peer {
+public class Peer implements InitiatorPeer {
     private MulticastService multicastControl;
     private MulticastService multicastDataBackup;
     private MulticastService multicastDataRestore;
 
-    private Object serviceAccessPoint; // Object because we dont know how to implement RMI yet
+    private String serviceAccessPoint;
     private String peerId;
     private String protocolVersion;
 
@@ -32,21 +36,32 @@ public class Peer {
             System.out.println("Service Access Point: ???");
             throw new Exception("Invalid Arguments Number");
         }
+
         Peer peer = new Peer(args);
+        try {
+            InitiatorPeer stub = (InitiatorPeer) UnicastRemoteObject.exportObject(peer, 0);
+            Registry registry = LocateRegistry.getRegistry("localhost");
+            registry.rebind(peer.getPeerId(), stub);
+            System.err.println("[PEER] - RMI registry complete");
+        } catch (Exception e) {
+            System.err.println("[PEER] - RMI registry exception: " + e.toString());
+            e.printStackTrace();
+        }
+
+        peer.start();
     }
 
     public Peer(String[] args) throws IOException {
         parseArgs(args);
         this.threadPoolExecutor = Executors.newFixedThreadPool(16);
+    }
 
+    private void start() {
         new Thread(this.multicastControl).start();
         new Thread(this.multicastDataBackup).start();
         new Thread(this.multicastDataRestore).start();
 
         System.out.printf("PEER %s IS LIVE!\n", this.peerId);
-
-        Message debugMessage = new DebugMessage(this.protocolVersion, this.peerId, "fileID", 1, 1, ("Hello Everyone peer " + peerId + " here").getBytes(StandardCharsets.UTF_8));
-        this.multicastControl.sendMessage(debugMessage);
     }
 
     private void parseArgs(String[] args) throws IOException {
@@ -103,5 +118,30 @@ public class Peer {
 
     public ExecutorService getThreadPoolExecutor() {
         return threadPoolExecutor;
+    }
+
+    @Override
+    public void backup(String pathname, int replicationDegree) throws RemoteException {
+        System.out.println("BACKUP PROTOCOL - Not yet implemented");
+    }
+
+    @Override
+    public void restore(String pathname) throws RemoteException {
+        System.out.println("RESTORE PROTOCOL - Not yet implemented");
+    }
+
+    @Override
+    public void delete(String pathname) throws RemoteException {
+        System.out.println("DELETE PROTOCOL - Not yet implemented");
+    }
+
+    @Override
+    public void reclaim(int maxDiskSpace) throws RemoteException {
+        System.out.println("RECLAIM PROTOCOL - Not yet implemented");
+    }
+
+    @Override
+    public void debug(String debugMessage) throws RemoteException {
+        System.out.println("DEBUG PROTOCOL - " + debugMessage);
     }
 }
