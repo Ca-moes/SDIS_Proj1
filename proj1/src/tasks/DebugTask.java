@@ -3,8 +3,6 @@ package tasks;
 import messages.DebugMessage;
 import peer.Peer;
 
-import java.util.Arrays;
-
 public class DebugTask extends Task {
     public DebugTask(DebugMessage message, Peer peer) {
         super(message, peer);

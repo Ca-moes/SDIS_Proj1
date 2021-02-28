@@ -2,6 +2,7 @@ package peer;
 
 import messages.DebugMessage;
 import messages.Message;
+import messages.MulticastService;
 
 import java.io.IOException;
 import java.net.InetAddress;

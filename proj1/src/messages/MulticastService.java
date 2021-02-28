@@ -1,12 +1,12 @@
-package peer;
+package messages;
 
-import messages.Message;
+import peer.Dispatcher;
+import peer.Peer;
 
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.InetAddress;
 import java.net.MulticastSocket;
-import java.nio.charset.StandardCharsets;
 
 public class MulticastService extends MulticastSocket implements Runnable {
     private final InetAddress address;
@@ -45,9 +45,10 @@ public class MulticastService extends MulticastSocket implements Runnable {
             try {
                 this.receive(packet);
                 Message m = Message.fromDatagramPacket(packet);
+                // if isOwner we discard the message
                 if (!m.isOwner(this.peer.getPeerId())) {
-                    peer.getThreadPoolExecutor().submit(new Dispatcher(m, peer));
                     System.out.printf("[MulticastService] (%s) - Received Message - bytes received in body: %d%n", this.identifier, m.getBody().length);
+                    peer.getThreadPoolExecutor().submit(new Dispatcher(m, peer));
                 }
             } catch (Exception e) {
                 e.printStackTrace();
