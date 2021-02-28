@@ -16,6 +16,7 @@ public class BackupOperation extends Operation {
 
     @Override
     public void start() throws RemoteException {
+        System.out.println("Started a Backup Operation");
         this.stub.backup(this.pathname, this.replicationDegree);
     }
 }

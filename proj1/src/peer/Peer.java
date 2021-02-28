@@ -1,5 +1,6 @@
 package peer;
 
+import files.IOUtils;
 import messages.DebugMessage;
 import messages.Message;
 import messages.MulticastService;
@@ -122,7 +123,14 @@ public class Peer implements InitiatorPeer {
 
     @Override
     public void backup(String pathname, int replicationDegree) throws RemoteException {
-        System.out.println("BACKUP PROTOCOL - Not yet implemented");
+        System.out.println("BACKUP PROTOCOL");
+        System.out.printf("Pathname: %s | Replication Degree: %d\n", pathname, replicationDegree);
+
+        try {
+            System.out.println(IOUtils.getFileId(pathname));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     @Override
