@@ -1,38 +1,21 @@
 package files;
 
 import java.io.Serializable;
+import java.util.Arrays;
 import java.util.Objects;
 
-public class SavedChunk implements Serializable {
-    private final String chunkId;
-    private final int replicationDegree;
-    private final int currentReplicationDegree;
+public class SavedChunk extends Chunk implements Serializable {
+    private int currentReplicationDegree;
+    private byte[] body;
 
-    public SavedChunk(String chunkId, int replicationDegree, int currentReplicationDegree) {
-        this.chunkId = chunkId;
-        this.replicationDegree = replicationDegree;
+    public SavedChunk(String fileId, int chunkNo, int replicationDegree, int currentReplicationDegree, byte[] body) {
+        super(fileId, chunkNo, replicationDegree);
         this.currentReplicationDegree = currentReplicationDegree;
+        this.body = body;
     }
 
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        SavedChunk chunk = (SavedChunk) o;
-        return Objects.equals(chunkId, chunk.chunkId);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(chunkId);
-    }
-
-    public String getChunkId() {
-        return chunkId;
-    }
-
-    public int getReplicationDegree() {
-        return replicationDegree;
+    public byte[] getBody() {
+        return body;
     }
 
     public int getCurrentReplicationDegree() {
@@ -41,10 +24,12 @@ public class SavedChunk implements Serializable {
 
     @Override
     public String toString() {
-        return "SavedChunk{" +
-                "chunkId='" + chunkId + '\'' +
+        return "\nSavedChunk{" +
+                "fileId='" + fileId + '\'' +
+                ", chunkNo=" + chunkNo +
                 ", replicationDegree=" + replicationDegree +
                 ", currentReplicationDegree=" + currentReplicationDegree +
+                /*", body=" + Arrays.toString(body) +*/
                 '}';
     }
 }

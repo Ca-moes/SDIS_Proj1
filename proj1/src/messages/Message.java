@@ -63,7 +63,7 @@ public abstract class Message {
             case "REMOVED":
                 return new RemovedMessage(version, senderId, fileId, chunkNo, replicationDegree, body);
             case "STORED":
-                return new StoredMessage(version, senderId, fileId, chunkNo, replicationDegree, body);
+                return new StoredMessage(version, senderId, fileId, chunkNo, replicationDegree);
             default:
                 throw new Exception("COULD NOT PARSE MESSAGE PACKET");
         }
@@ -106,7 +106,7 @@ public abstract class Message {
                 ", fileId='" + fileId + '\'' +
                 ", chunkNo=" + chunkNo +
                 ", replicationDegree=" + replicationDegree +
-                ", body=" + Arrays.toString(body) +
+                /*", body=" + Arrays.toString(body) +*/
                 '}';
     }
 
