@@ -1,24 +1,29 @@
 package files;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Objects;
 
 public abstract class Chunk implements Serializable {
     protected String fileId;
     protected int chunkNo;
     protected int replicationDegree;
+    protected final List<String> peers;
 
     public Chunk(String fileId, int chunkNo) {
         this.fileId = fileId;
         this.chunkNo = chunkNo;
         this.replicationDegree = 0;
+        this.peers = new ArrayList<>();
     }
 
     public Chunk(String fileId, int chunkNo, int replicationDegree) {
         this.fileId = fileId;
         this.chunkNo = chunkNo;
         this.replicationDegree = replicationDegree;
+        this.peers = new ArrayList<>();
     }
 
     @Override
@@ -48,5 +53,9 @@ public abstract class Chunk implements Serializable {
 
     public int getReplicationDegree() {
         return replicationDegree;
+    }
+
+    public List<String> getPeers() {
+        return peers;
     }
 }

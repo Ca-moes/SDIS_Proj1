@@ -5,12 +5,10 @@ import java.util.Arrays;
 import java.util.Objects;
 
 public class SavedChunk extends Chunk implements Serializable {
-    private int currentReplicationDegree;
-    private byte[] body;
+    private final transient byte[] body;
 
-    public SavedChunk(String fileId, int chunkNo, int replicationDegree, int currentReplicationDegree, byte[] body) {
+    public SavedChunk(String fileId, int chunkNo, int replicationDegree, byte[] body) {
         super(fileId, chunkNo, replicationDegree);
-        this.currentReplicationDegree = currentReplicationDegree;
         this.body = body;
     }
 
@@ -18,9 +16,6 @@ public class SavedChunk extends Chunk implements Serializable {
         return body;
     }
 
-    public int getCurrentReplicationDegree() {
-        return currentReplicationDegree;
-    }
 
     @Override
     public String toString() {
@@ -28,7 +23,6 @@ public class SavedChunk extends Chunk implements Serializable {
                 "fileId='" + fileId + '\'' +
                 ", chunkNo=" + chunkNo +
                 ", replicationDegree=" + replicationDegree +
-                ", currentReplicationDegree=" + currentReplicationDegree +
                 /*", body=" + Arrays.toString(body) +*/
                 '}';
     }

@@ -4,6 +4,9 @@ import files.SavedChunk;
 import files.SentChunk;
 
 import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
@@ -13,10 +16,14 @@ public class PeerInternalState implements Serializable {
     private final HashSet<SavedChunk> savedChunks;
     private static transient String PEER_DIRECTORY = "%s";
     private static transient String DB_FILENAME = "%s/data.ser";
+    private static transient String CHUNK_PATH = "%s/%s/%d";
 
-    public PeerInternalState() {
+    private final transient Peer peer;
+
+    public PeerInternalState(Peer peer) {
         this.sentChunksMap = new ConcurrentHashMap<>();
         this.savedChunks = new HashSet<>();
+        this.peer = peer;
     }
 
     public static PeerInternalState loadInternalState(Peer peer) {
@@ -39,7 +46,7 @@ public class PeerInternalState implements Serializable {
         if (peerInternalState == null) {
             // has been an error reading the peer internal state
             // meaning we need to create a new one
-            peerInternalState = new PeerInternalState();
+            peerInternalState = new PeerInternalState(peer);
         }
 
         peerInternalState.build();
@@ -78,7 +85,25 @@ public class PeerInternalState implements Serializable {
         } catch (IOException i) {
             i.printStackTrace();
         }
-        System.out.println("[PIS] - Saved Database: " + this);
+//        System.out.println("[PIS] - Saved Database: " + this);
+    }
+
+    public void storeChunk(SavedChunk chunk) {
+        try {
+            String chunkPathName = String.format(CHUNK_PATH, PEER_DIRECTORY, chunk.getFileId(), chunk.getChunkNo());
+
+            Path path = Paths.get(chunkPathName);
+            Files.createDirectories(path.getParent());
+
+            FileOutputStream fos = new FileOutputStream(chunkPathName);
+            fos.write(chunk.getBody());
+            fos.close();
+
+            chunk.getPeers().add(peer.getPeerId());
+        } catch (IOException i) {
+            System.out.println("[PIS] - Couldn't Save chunk " + chunk.getChunkId() + " on this peer");
+            i.printStackTrace();
+        }
     }
 
     public void updateBackedUpChunks(SentChunk chunk, String replier) {
