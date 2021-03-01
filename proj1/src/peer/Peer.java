@@ -1,9 +1,6 @@
 package peer;
 
-import files.IOUtils;
 import files.PeerFile;
-import files.SentChunk;
-import messages.DebugMessage;
 import messages.Message;
 import messages.MulticastService;
 import messages.PutchunkMessage;
@@ -11,13 +8,10 @@ import tasks.BackupChunk;
 
 import java.io.IOException;
 import java.net.InetAddress;
-import java.nio.charset.StandardCharsets;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.regex.Matcher;
@@ -192,5 +186,10 @@ public class Peer implements InitiatorPeer {
     @Override
     public void debug(String debugMessage) throws RemoteException {
         System.out.println("DEBUG PROTOCOL - " + debugMessage);
+    }
+
+    @Override
+    public void state() throws RemoteException {
+        System.out.println(this.internalState);
     }
 }
