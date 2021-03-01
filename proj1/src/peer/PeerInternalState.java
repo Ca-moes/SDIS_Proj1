@@ -12,8 +12,10 @@ import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class PeerInternalState implements Serializable {
-    private final ConcurrentHashMap<SentChunk, List<String>> sentChunksMap;
-    private final HashSet<SavedChunk> savedChunks;
+    // chunkId -> sent chunk
+    private final ConcurrentHashMap<String, SentChunk> sentChunksMap;
+    // chunkId -> saved chunk
+    private final ConcurrentHashMap<String, SavedChunk> savedChunksMap;
     private static transient String PEER_DIRECTORY = "%s";
     private static transient String DB_FILENAME = "%s/data.ser";
     private static transient String CHUNK_PATH = "%s/%s/%d";
@@ -22,7 +24,7 @@ public class PeerInternalState implements Serializable {
 
     public PeerInternalState(Peer peer) {
         this.sentChunksMap = new ConcurrentHashMap<>();
-        this.savedChunks = new HashSet<>();
+        this.savedChunksMap = new ConcurrentHashMap<>();
         this.peer = peer;
     }
 
@@ -40,7 +42,6 @@ public class PeerInternalState implements Serializable {
             objectIn.close();
         } catch (IOException | ClassNotFoundException e) {
             System.out.println("[PIS] - Couldn't Load Database. Creating one now...");
-            e.printStackTrace();
         }
 
         if (peerInternalState == null) {
@@ -50,8 +51,6 @@ public class PeerInternalState implements Serializable {
         }
 
         peerInternalState.build();
-
-        System.out.println(peerInternalState);
 
         return peerInternalState;
     }
@@ -106,25 +105,36 @@ public class PeerInternalState implements Serializable {
         }
     }
 
-    public void updateBackedUpChunks(SentChunk chunk, String replier) {
-        if (sentChunksMap.containsKey(chunk)) {
-            sentChunksMap.get(chunk).add(replier);
+    public void updateStoredConfirmation(SentChunk chunk, String replier) {
+        if (sentChunksMap.containsKey(chunk.getChunkId())) {
+            sentChunksMap.get(chunk.getChunkId()).getPeers().add(replier);
         }
     }
 
-    public ConcurrentHashMap<SentChunk, List<String>> getSentChunksMap() {
+    public void updateStoredConfirmation(SavedChunk chunk, String replier) {
+        if (savedChunksMap.containsKey(chunk.getChunkId())) {
+            savedChunksMap.get(chunk.getChunkId()).getPeers().add(replier);
+        }
+    }
+
+    public ConcurrentHashMap<String, SentChunk> getSentChunksMap() {
         return sentChunksMap;
     }
 
-    public HashSet<SavedChunk> getSavedChunks() {
-        return savedChunks;
+    public ConcurrentHashMap<String, SavedChunk> getSavedChunksMap() {
+        return savedChunksMap;
     }
 
     @Override
     public String toString() {
-        return "PeerInternalState{" +
-                "\nsentChunksMap=" + sentChunksMap +
-                ",\nsavedChunks=" + savedChunks +
-                '}';
+        StringBuilder out = new StringBuilder("SAVED CHUNKS MAP");
+        for (String chunkId : this.savedChunksMap.keySet()) {
+            out.append(this.savedChunksMap.get(chunkId));
+        }
+        out.append("\nSENT CHUNKS MAP");
+        for (String chunkId : this.sentChunksMap.keySet()) {
+            out.append(this.sentChunksMap.get(chunkId));
+        }
+        return out.toString();
     }
 }

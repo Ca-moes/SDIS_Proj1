@@ -4,9 +4,6 @@ import files.SentChunk;
 import messages.Message;
 import peer.Peer;
 
-import java.util.ArrayList;
-import java.util.List;
-
 public class BackupChunk implements Runnable {
     private final Message message;
     private final Peer peer;
@@ -18,11 +15,9 @@ public class BackupChunk implements Runnable {
 
     @Override
     public void run() {
-        List<String> peers = new ArrayList<>();
-
         SentChunk chunk = new SentChunk(message.getFileId(), message.getChunkNo(), message.getReplicationDegree());
 
-        this.peer.getInternalState().getSentChunksMap().put(chunk, peers);
+        this.peer.getInternalState().getSentChunksMap().put(chunk.getChunkId(), chunk);
 
         int timeout = 1000;
         while (timeout <= 16000) {
@@ -32,10 +27,11 @@ public class BackupChunk implements Runnable {
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
-            if (peers.size() < message.getReplicationDegree()) {
+            if (chunk.getPeers().size() < message.getReplicationDegree()) {
                 timeout = 2 * timeout;
             } else {
                 this.peer.getInternalState().commit();
+                System.out.println(chunk + "\nBACKUP COMPLETE");
                 break;
             }
         }

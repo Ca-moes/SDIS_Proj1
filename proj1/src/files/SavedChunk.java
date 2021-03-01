@@ -12,10 +12,14 @@ public class SavedChunk extends Chunk implements Serializable {
         this.body = body;
     }
 
+    public SavedChunk(String fileId, int chunkNo) {
+        super(fileId, chunkNo);
+        this.body = new byte[0];
+    }
+
     public byte[] getBody() {
         return body;
     }
-
 
     @Override
     public String toString() {
@@ -23,7 +27,7 @@ public class SavedChunk extends Chunk implements Serializable {
                 "fileId='" + fileId + '\'' +
                 ", chunkNo=" + chunkNo +
                 ", replicationDegree=" + replicationDegree +
-                /*", body=" + Arrays.toString(body) +*/
+                ", peers=" + peers +
                 '}';
     }
 }

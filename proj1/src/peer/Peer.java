@@ -62,6 +62,8 @@ public class Peer implements InitiatorPeer {
         parseArgs(args);
         this.threadPoolExecutor = Executors.newFixedThreadPool(64);
         this.internalState = PeerInternalState.loadInternalState(this);
+
+        System.out.println(this.internalState);
     }
 
     private void start() {
@@ -141,6 +143,7 @@ public class Peer implements InitiatorPeer {
             PeerFile file = new PeerFile(pathname);
             byte[] buffer;
             int i = 1;
+            int size = 0;
             while ((buffer = file.getNextChunk()) != null) {
                 Message message = new PutchunkMessage(
                         this.protocolVersion,
@@ -150,9 +153,21 @@ public class Peer implements InitiatorPeer {
                         replicationDegree,
                         buffer
                 );
-
+                size = buffer.length;
                 new Thread(new BackupChunk(message, this)).start();
                 i++;
+            }
+            if (size == 64000) {
+                System.out.println("FILE WITH MULTIPLE OF 64KB, SENDING AN EMPTY BODY PUTCHAR MESSAGE");
+                Message message = new PutchunkMessage(
+                        this.protocolVersion,
+                        this.peerId,
+                        file.getFileID(),
+                        i,
+                        replicationDegree,
+                        new byte[0]
+                );
+                new Thread(new BackupChunk(message, this)).start();
             }
         } catch (IOException e) {
             e.printStackTrace();

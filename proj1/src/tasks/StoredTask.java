@@ -1,5 +1,6 @@
 package tasks;
 
+import files.SavedChunk;
 import files.SentChunk;
 import messages.StoredMessage;
 import peer.Peer;
@@ -13,8 +14,10 @@ public class StoredTask extends Task {
     public void start() {
         System.out.println("Received STORED from " + message.getSenderId());
 
-        SentChunk chunk = new SentChunk(message.getFileId(), message.getChunkNo());
+        SentChunk sentChunk = new SentChunk(message.getFileId(), message.getChunkNo());
+        SavedChunk savedChunk = new SavedChunk(message.getFileId(), message.getChunkNo());
 
-        peer.getInternalState().updateBackedUpChunks(chunk, message.getSenderId());
+        peer.getInternalState().updateStoredConfirmation(sentChunk, message.getSenderId());
+        peer.getInternalState().updateStoredConfirmation(savedChunk, message.getSenderId());
     }
 }
