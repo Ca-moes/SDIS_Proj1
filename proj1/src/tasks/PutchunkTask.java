@@ -32,8 +32,10 @@ public class PutchunkTask extends Task {
                 peer.getMulticastControl().sendMessage(reply);
                 peer.getInternalState().storeChunk(chunk);
                 peer.getInternalState().commit();
+            } else {
+                // no need to backup here as it is already being backed up and it wont reply with STORED
+                peer.getInternalState().getSavedChunksMap().remove(chunk.getChunkId());
             }
-            // else - no need to backup here as it is already being backed up and it wont reply with STORED
         }
     }
 }

@@ -56,8 +56,6 @@ public class Peer implements InitiatorPeer {
         parseArgs(args);
         this.threadPoolExecutor = Executors.newFixedThreadPool(64);
         this.internalState = PeerInternalState.loadInternalState(this);
-
-        System.out.println(this.internalState);
     }
 
     private void start() {
@@ -135,6 +133,9 @@ public class Peer implements InitiatorPeer {
 
         try {
             PeerFile file = new PeerFile(pathname);
+            this.getInternalState().getBackedUpFilesMap().put(pathname, file.getFileID());
+            this.getInternalState().commit();
+
             byte[] buffer;
             int i = 1;
             int size = 0;

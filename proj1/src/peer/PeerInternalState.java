@@ -16,6 +16,8 @@ public class PeerInternalState implements Serializable {
     private final ConcurrentHashMap<String, SentChunk> sentChunksMap;
     // chunkId -> saved chunk
     private final ConcurrentHashMap<String, SavedChunk> savedChunksMap;
+    private final ConcurrentHashMap<String, String> backedUpFilesMap;
+
     private static transient String PEER_DIRECTORY = "%s";
     private static transient String DB_FILENAME = "%s/data.ser";
     private static transient String CHUNK_PATH = "%s/%s/%d";
@@ -25,6 +27,7 @@ public class PeerInternalState implements Serializable {
     public PeerInternalState(Peer peer) {
         this.sentChunksMap = new ConcurrentHashMap<>();
         this.savedChunksMap = new ConcurrentHashMap<>();
+        this.backedUpFilesMap = new ConcurrentHashMap<>();
         this.peer = peer;
     }
 
@@ -125,9 +128,16 @@ public class PeerInternalState implements Serializable {
         return savedChunksMap;
     }
 
+    public ConcurrentHashMap<String, String> getBackedUpFilesMap() {
+        return backedUpFilesMap;
+    }
+
     @Override
     public String toString() {
-        StringBuilder out = new StringBuilder("SAVED CHUNKS MAP");
+        StringBuilder out = new StringBuilder("BACKED FILES MAP\n");
+        out.append(this.backedUpFilesMap);
+
+        out.append("\nSAVED CHUNKS MAP");
         for (String chunkId : this.savedChunksMap.keySet()) {
             out.append(this.savedChunksMap.get(chunkId));
         }
