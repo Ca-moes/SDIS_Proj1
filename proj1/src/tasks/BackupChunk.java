@@ -20,7 +20,7 @@ public class BackupChunk implements Runnable {
         this.peer.getInternalState().getSentChunksMap().put(chunk.getChunkId(), chunk);
 
         int timeout = 1000;
-        while (timeout <= 16000) {
+        while (timeout <= 32000) {
             try {
                 this.peer.getMulticastDataBackup().sendMessage(message);
                 Thread.sleep(timeout);
