@@ -1,6 +1,7 @@
 package tasks;
 
-import messages.Message;
+import files.SavedChunk;
+import files.SentChunk;
 import messages.StoredMessage;
 import peer.Peer;
 
@@ -11,7 +12,12 @@ public class StoredTask extends Task {
 
     @Override
     public void start() {
-        // Check UML
-        // TODO
+        System.out.println("Received STORED from " + message.getSenderId());
+
+        SentChunk sentChunk = new SentChunk(message.getFileId(), message.getChunkNo());
+        SavedChunk savedChunk = new SavedChunk(message.getFileId(), message.getChunkNo());
+
+        peer.getInternalState().updateStoredConfirmation(sentChunk, message.getSenderId());
+        peer.getInternalState().updateStoredConfirmation(savedChunk, message.getSenderId());
     }
 }

@@ -1,50 +1,33 @@
 package files;
 
 import java.io.Serializable;
+import java.util.Arrays;
 import java.util.Objects;
 
-public class SavedChunk implements Serializable {
-    private final String chunkId;
-    private final int replicationDegree;
-    private final int currentReplicationDegree;
+public class SavedChunk extends Chunk implements Serializable {
+    private final transient byte[] body;
 
-    public SavedChunk(String chunkId, int replicationDegree, int currentReplicationDegree) {
-        this.chunkId = chunkId;
-        this.replicationDegree = replicationDegree;
-        this.currentReplicationDegree = currentReplicationDegree;
+    public SavedChunk(String fileId, int chunkNo, int replicationDegree, byte[] body) {
+        super(fileId, chunkNo, replicationDegree);
+        this.body = body;
     }
 
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        SavedChunk chunk = (SavedChunk) o;
-        return Objects.equals(chunkId, chunk.chunkId);
+    public SavedChunk(String fileId, int chunkNo) {
+        super(fileId, chunkNo);
+        this.body = new byte[0];
     }
 
-    @Override
-    public int hashCode() {
-        return Objects.hash(chunkId);
-    }
-
-    public String getChunkId() {
-        return chunkId;
-    }
-
-    public int getReplicationDegree() {
-        return replicationDegree;
-    }
-
-    public int getCurrentReplicationDegree() {
-        return currentReplicationDegree;
+    public byte[] getBody() {
+        return body;
     }
 
     @Override
     public String toString() {
-        return "SavedChunk{" +
-                "chunkId='" + chunkId + '\'' +
+        return "\nSavedChunk{" +
+                "fileId='" + fileId + '\'' +
+                ", chunkNo=" + chunkNo +
                 ", replicationDegree=" + replicationDegree +
-                ", currentReplicationDegree=" + currentReplicationDegree +
+                ", peers=" + peers +
                 '}';
     }
 }

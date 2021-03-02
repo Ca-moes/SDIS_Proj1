@@ -1,13 +1,13 @@
 package peer;
 
-import files.IOUtils;
-import messages.DebugMessage;
+import files.PeerFile;
 import messages.Message;
 import messages.MulticastService;
+import messages.PutchunkMessage;
+import tasks.BackupChunk;
 
 import java.io.IOException;
 import java.net.InetAddress;
-import java.nio.charset.StandardCharsets;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
@@ -28,7 +28,7 @@ public class Peer implements InitiatorPeer {
 
     private final ExecutorService threadPoolExecutor;
 
-    // private PeerInternalState internalState = new PeerInternalState();
+    private final PeerInternalState internalState;
 
     public static void main(String[] args) throws Exception {
         if (args.length != 6) {
@@ -54,7 +54,8 @@ public class Peer implements InitiatorPeer {
 
     public Peer(String[] args) throws IOException {
         parseArgs(args);
-        this.threadPoolExecutor = Executors.newFixedThreadPool(16);
+        this.threadPoolExecutor = Executors.newFixedThreadPool(64);
+        this.internalState = PeerInternalState.loadInternalState(this);
     }
 
     private void start() {
@@ -121,13 +122,48 @@ public class Peer implements InitiatorPeer {
         return threadPoolExecutor;
     }
 
+    public PeerInternalState getInternalState() {
+        return internalState;
+    }
+
     @Override
     public void backup(String pathname, int replicationDegree) throws RemoteException {
         System.out.println("BACKUP PROTOCOL");
         System.out.printf("Pathname: %s | Replication Degree: %d\n", pathname, replicationDegree);
 
         try {
-            System.out.println(IOUtils.getFileId(pathname));
+            PeerFile file = new PeerFile(pathname);
+            this.getInternalState().getBackedUpFilesMap().put(pathname, file.getFileID());
+            this.getInternalState().commit();
+
+            byte[] buffer;
+            int i = 1;
+            int size = 0;
+            while ((buffer = file.getNextChunk()) != null) {
+                Message message = new PutchunkMessage(
+                        this.protocolVersion,
+                        this.peerId,
+                        file.getFileID(),
+                        i,
+                        replicationDegree,
+                        buffer
+                );
+                size = buffer.length;
+                new Thread(new BackupChunk(message, this)).start();
+                i++;
+            }
+            if (size == 64000) {
+                System.out.println("FILE WITH MULTIPLE OF 64KB, SENDING AN EMPTY BODY PUTCHAR MESSAGE");
+                Message message = new PutchunkMessage(
+                        this.protocolVersion,
+                        this.peerId,
+                        file.getFileID(),
+                        i,
+                        replicationDegree,
+                        new byte[0]
+                );
+                new Thread(new BackupChunk(message, this)).start();
+            }
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -151,5 +187,10 @@ public class Peer implements InitiatorPeer {
     @Override
     public void debug(String debugMessage) throws RemoteException {
         System.out.println("DEBUG PROTOCOL - " + debugMessage);
+    }
+
+    @Override
+    public void state() throws RemoteException {
+        System.out.println(this.internalState);
     }
 }
