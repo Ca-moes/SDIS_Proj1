@@ -46,24 +46,28 @@ public abstract class Message {
         String type = args[1];
         String senderId = args[2];
         String fileId = args[3];
-        int chunkNo = Integer.parseInt(args[4]);
-        int replicationDegree = Integer.parseInt(args[5]);
         byte[] body = new byte[0];
         if (parts.length == 2) body = Arrays.copyOfRange(packet.getData(), headerBytes + 4, packet.getLength());
 
+        int chunkNo;
+        int replicationDegree;
+
         switch (type) {
             case "CHUNK":
-                return new ChunkMessage(version, senderId, fileId, chunkNo, replicationDegree, body);
-            case "DEBUG":
-                return new DebugMessage(version, senderId, fileId, chunkNo, replicationDegree, body);
+                chunkNo = Integer.parseInt(args[4]);
+                return new ChunkMessage(version, senderId, fileId, chunkNo, body);
             case "DELETE":
-                return new DeleteMessage(version, senderId, fileId, chunkNo, replicationDegree, body);
+                return new DeleteMessage(version, senderId, fileId);
             case "PUTCHUNK":
+                chunkNo = Integer.parseInt(args[4]);
+                replicationDegree = Integer.parseInt(args[5]);
                 return new PutchunkMessage(version, senderId, fileId, chunkNo, replicationDegree, body);
             case "REMOVED":
-                return new RemovedMessage(version, senderId, fileId, chunkNo, replicationDegree, body);
+                chunkNo = Integer.parseInt(args[4]);
+                return new RemovedMessage(version, senderId, fileId, chunkNo);
             case "STORED":
-                return new StoredMessage(version, senderId, fileId, chunkNo, replicationDegree);
+                chunkNo = Integer.parseInt(args[4]);
+                return new StoredMessage(version, senderId, fileId, chunkNo);
             default:
                 throw new Exception("COULD NOT PARSE MESSAGE PACKET");
         }
@@ -85,6 +89,7 @@ public abstract class Message {
     }
 
     @Override
+    @Deprecated
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;

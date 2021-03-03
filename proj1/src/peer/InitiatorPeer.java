@@ -12,7 +12,5 @@ public interface InitiatorPeer extends Remote {
 
     void reclaim(int maxDiskSpace) throws RemoteException;
 
-    void debug(String debugMessage) throws RemoteException;
-
     void state() throws RemoteException;
 }

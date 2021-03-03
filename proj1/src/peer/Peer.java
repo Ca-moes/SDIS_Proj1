@@ -185,11 +185,6 @@ public class Peer implements InitiatorPeer {
     }
 
     @Override
-    public void debug(String debugMessage) throws RemoteException {
-        System.out.println("DEBUG PROTOCOL - " + debugMessage);
-    }
-
-    @Override
     public void state() throws RemoteException {
         System.out.println(this.internalState);
     }
