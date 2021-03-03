@@ -4,9 +4,20 @@ import peer.Peer;
 import tasks.DeleteTask;
 import tasks.Task;
 
+import java.nio.charset.StandardCharsets;
+
 public class DeleteMessage extends Message {
-    public DeleteMessage(String protocolVersion, String senderId, String fileId, int chunkNo, int replicationDegree, byte[] body) {
-        super(protocolVersion, "DELETE", senderId, fileId, chunkNo, replicationDegree, body);
+    public DeleteMessage(String protocolVersion, String senderId, String fileId) {
+        super(protocolVersion, "DELETE", senderId, fileId, 0, 0, new byte[0]);
+    }
+
+    @Override
+    public byte[] encodeToSend() {
+        return String.format("%s %s %s %s \r\n\r\n",
+                this.protocolVersion,
+                this.type,
+                this.senderId,
+                this.fileId).getBytes(StandardCharsets.UTF_8);
     }
 
     @Override

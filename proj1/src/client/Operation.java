@@ -21,8 +21,6 @@ public abstract class Operation {
                 return new DeleteOperation(stub, args[2]);
             case "RECLAIM":
                 return new ReclaimOperation(stub, Integer.parseInt(args[2]));
-            case "DEBUG":
-                return new DebugOperation(stub, args[2]);
             case "STATE":
                 return new StateOperation(stub);
             default:

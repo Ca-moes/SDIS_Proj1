@@ -1,5 +1,5 @@
 cd out
 
-java client.TestApp peer1 BACKUP "../test192" 3
+java client.TestApp peer1 BACKUP "../large.jpg" 3
 
 pause

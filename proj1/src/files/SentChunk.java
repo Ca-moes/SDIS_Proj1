@@ -7,7 +7,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class SentChunk extends Chunk implements Serializable {
-
     public SentChunk(String fileId, int chunkNo, int replicationDegree) {
         super(fileId, chunkNo, replicationDegree);
     }

@@ -16,7 +16,7 @@ public class PutchunkTask extends Task {
         System.out.println("Received PUTCHUNK");
         SavedChunk chunk = new SavedChunk(message.getFileId(), message.getChunkNo(), message.getReplicationDegree(), message.getBody());
 
-        Message reply = new StoredMessage(peer.getProtocolVersion(), peer.getPeerId(), message.getFileId(), message.getChunkNo(), message.getReplicationDegree());
+        Message reply = new StoredMessage(peer.getProtocolVersion(), peer.getPeerId(), message.getFileId(), message.getChunkNo());
 
         if (this.peer.getInternalState().getSavedChunksMap().containsKey(chunk.getChunkId())) {
             // This peer has this chunk but it will send a reply anyways cause it indicates that it has saved the chunk (UDP unreliability)
