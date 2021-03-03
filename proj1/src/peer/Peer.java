@@ -1,6 +1,7 @@
 package peer;
 
 import files.PeerFile;
+import messages.DeleteMessage;
 import messages.Message;
 import messages.MulticastService;
 import messages.PutchunkMessage;
@@ -176,7 +177,29 @@ public class Peer implements InitiatorPeer {
 
     @Override
     public void delete(String pathname) throws RemoteException {
-        System.out.println("DELETE PROTOCOL - Not yet implemented");
+        System.out.println("DELETE PROTOCOL");
+        System.out.printf("Pathname: %s\n", pathname);
+
+        if (this.internalState.getBackedUpFilesMap().containsKey(pathname)) {
+            System.out.println("[PEER] I backed up that file. Starting deletion...");
+            String fileId = this.internalState.getBackedUpFilesMap().get(pathname);
+            Message message = new DeleteMessage(this.protocolVersion, this.peerId, fileId);
+            int timeout = 1000;
+            while (timeout <= 5000) {
+                try {
+                    this.multicastControl.sendMessage(message);
+                    Thread.sleep(timeout);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                timeout += 1000;
+            }
+            System.out.println("[PEER] File Deleted");
+            this.getInternalState().deleteBackedUpEntries(pathname);
+
+        } else {
+            System.out.println("[PEER] I have not backed up that file!");
+        }
     }
 
     @Override

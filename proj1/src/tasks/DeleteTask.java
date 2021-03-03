@@ -1,5 +1,6 @@
 package tasks;
 
+import files.SavedChunk;
 import messages.DeleteMessage;
 import peer.Peer;
 
@@ -10,7 +11,12 @@ public class DeleteTask extends Task {
 
     @Override
     public void start() {
-        // Check UML
-        // TODO
+        System.out.println("Received Delete Command for fileId: " + message.getFileId());
+        for (String chunkId : this.peer.getInternalState().getSavedChunksMap().keySet()) {
+            SavedChunk chunk = this.peer.getInternalState().getSavedChunksMap().get(chunkId);
+            if (chunk.getFileId().equals(message.getFileId())) {
+                this.peer.getInternalState().deleteChunk(chunk);
+            }
+        }
     }
 }

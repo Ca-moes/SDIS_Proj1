@@ -145,4 +145,24 @@ public class PeerInternalState implements Serializable {
         }
         return out.toString();
     }
+
+    public void deleteChunk(SavedChunk chunk) {
+        String filepath = String.format(CHUNK_PATH, PEER_DIRECTORY, chunk.getFileId(), chunk.getChunkNo());
+        File file = new File(filepath);
+
+        this.savedChunksMap.remove(chunk.getChunkId());
+        file.delete();
+        this.commit();
+    }
+
+    public void deleteBackedUpEntries(String pathname) {
+        String fileId = this.backedUpFilesMap.remove(pathname);
+        for (String chunkId : this.sentChunksMap.keySet()) {
+            SentChunk chunk = this.sentChunksMap.get(chunkId);
+            if (chunk.getFileId().equals(fileId)) {
+                this.sentChunksMap.remove(chunkId);
+            }
+        }
+        this.commit();
+    }
 }
