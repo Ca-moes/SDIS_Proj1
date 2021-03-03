@@ -42,7 +42,7 @@ public class Peer implements InitiatorPeer {
         Peer peer = new Peer(args);
         try {
             InitiatorPeer stub = (InitiatorPeer) UnicastRemoteObject.exportObject(peer, 0);
-            Registry registry = LocateRegistry.getRegistry("localhost");
+            Registry registry = LocateRegistry.getRegistry();
             registry.rebind(peer.getPeerId(), stub);
             System.err.println("[PEER] - RMI registry complete");
         } catch (Exception e) {
