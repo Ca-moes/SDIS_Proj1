@@ -1,0 +1,12 @@
+version: '2'
+services:
+  peer:
+    networks:
+      - sdis
+    build:
+      context: .
+      dockerfile: Dockerfile.peer
+    entrypoint: ./entrypoint_peer.sh
+networks:
+  sdis:
+    driver: bridge
