@@ -13,7 +13,6 @@ public class PutchunkTask extends Task {
 
     @Override
     public void start() {
-        System.out.println("Received PUTCHUNK");
         SavedChunk chunk = new SavedChunk(message.getFileId(), message.getChunkNo(), message.getReplicationDegree(), message.getBody());
 
         Message reply = new StoredMessage(peer.getProtocolVersion(), peer.getPeerId(), message.getFileId(), message.getChunkNo());

@@ -196,7 +196,7 @@ public class Peer implements InitiatorPeer {
             }
             System.out.println("[PEER] File Deleted");
             this.getInternalState().deleteBackedUpEntries(pathname);
-
+            this.getInternalState().getDeletedFiles().add(fileId);
         } else {
             System.out.println("[PEER] I have not backed up that file!");
         }

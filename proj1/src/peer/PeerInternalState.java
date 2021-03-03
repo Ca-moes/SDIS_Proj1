@@ -7,6 +7,8 @@ import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Comparator;
+import java.util.HashSet;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class PeerInternalState implements Serializable {
@@ -15,6 +17,7 @@ public class PeerInternalState implements Serializable {
     // chunkId -> saved chunk
     private final ConcurrentHashMap<String, SavedChunk> savedChunksMap;
     private final ConcurrentHashMap<String, String> backedUpFilesMap;
+    private final HashSet<String> deletedFiles;
 
     private static transient String PEER_DIRECTORY = "%s";
     private static transient String DB_FILENAME = "%s/data.ser";
@@ -26,6 +29,7 @@ public class PeerInternalState implements Serializable {
         this.sentChunksMap = new ConcurrentHashMap<>();
         this.savedChunksMap = new ConcurrentHashMap<>();
         this.backedUpFilesMap = new ConcurrentHashMap<>();
+        this.deletedFiles = new HashSet<>();
         this.peer = peer;
     }
 
@@ -143,6 +147,10 @@ public class PeerInternalState implements Serializable {
         for (String chunkId : this.sentChunksMap.keySet()) {
             out.append(this.sentChunksMap.get(chunkId));
         }
+        out.append("\nDELETED FILES HASHMAP\n");
+        for (String fileId : this.deletedFiles) {
+            out.append(fileId).append("\n");
+        }
         return out.toString();
     }
 
@@ -152,7 +160,21 @@ public class PeerInternalState implements Serializable {
 
         this.savedChunksMap.remove(chunk.getChunkId());
         file.delete();
+
+        this.deleteEmptyFolders();
         this.commit();
+    }
+
+    private void deleteEmptyFolders() {
+        try {
+            Files.walk(Paths.get(PEER_DIRECTORY))
+                    .sorted(Comparator.reverseOrder())
+                    .map(Path::toFile)
+                    .filter(File::isDirectory)
+                    .forEach(File::delete);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     public void deleteBackedUpEntries(String pathname) {
@@ -164,5 +186,9 @@ public class PeerInternalState implements Serializable {
             }
         }
         this.commit();
+    }
+
+    public HashSet<String> getDeletedFiles() {
+        return deletedFiles;
     }
 }
