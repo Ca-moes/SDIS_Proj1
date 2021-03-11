@@ -3,9 +3,10 @@ services:
   peer:
     networks:
       - sdis
+    image: sdis
     build:
       context: .
-      dockerfile: Dockerfile.peer
+      dockerfile: Dockerfile
     entrypoint: ./entrypoint_peer.sh
 networks:
   sdis:
