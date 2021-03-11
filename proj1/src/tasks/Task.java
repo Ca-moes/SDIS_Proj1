@@ -19,7 +19,7 @@ public abstract class Task {
     protected void sleep() {
         try {
             int sleep = ThreadLocalRandom.current().nextInt(0, 401);
-            System.out.printf("[%s] - sleeping for %3d ms%n", message.getType(), sleep);
+            // System.out.printf("[%s] - sleeping for %3d ms%n", message.getType(), sleep);
             Thread.sleep(sleep);
         } catch (InterruptedException e) {
             e.printStackTrace();

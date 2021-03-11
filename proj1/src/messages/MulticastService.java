@@ -29,7 +29,7 @@ public class MulticastService extends MulticastSocket implements Runnable {
         DatagramPacket packet = new DatagramPacket(buffer, buffer.length, this.address, this.getLocalPort());
         try {
             this.send(packet);
-            System.out.printf("[MulticastService] (%s) - Sent %s Message - bytes sent: %d%n", this.identifier, message.getType(), buffer.length);
+            // System.out.printf("[MulticastService] (%s) - Sent %s Message - bytes sent: %d%n", this.identifier, message.getType(), buffer.length);
             return true;
         } catch (IOException e) {
             e.printStackTrace();
@@ -47,7 +47,7 @@ public class MulticastService extends MulticastSocket implements Runnable {
                 Message m = Message.fromDatagramPacket(packet);
                 // if isOwner we discard the message
                 if (!m.isOwner(this.peer.getPeerId())) {
-                    System.out.printf("[MulticastService] (%s) - Received %s Message from %s - bytes received in body: %d%n", this.identifier, m.getType(), m.getSenderId(), m.getBody().length);
+                    // System.out.printf("[MulticastService] (%s) - Received %s Message from %s - bytes received in body: %d%n", this.identifier, m.getType(), m.getSenderId(), m.getBody().length);
                     peer.getThreadPoolExecutor().submit(new Dispatcher(m, peer));
                 }
             } catch (Exception e) {

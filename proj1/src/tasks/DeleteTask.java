@@ -11,7 +11,7 @@ public class DeleteTask extends Task {
 
     @Override
     public void start() {
-        System.out.println("Received Delete Command for fileId: " + message.getFileId());
+        // System.out.println("Received Delete Command for fileId: " + message.getFileId());
         for (String chunkId : this.peer.getInternalState().getSavedChunksMap().keySet()) {
             SavedChunk chunk = this.peer.getInternalState().getSavedChunksMap().get(chunkId);
             if (chunk.getFileId().equals(message.getFileId())) {
