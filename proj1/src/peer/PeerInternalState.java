@@ -103,6 +103,8 @@ public class PeerInternalState implements Serializable {
             fos.write(chunk.getBody());
             fos.close();
 
+            chunk.clearBody();
+
             chunk.getPeers().add(peer.getPeerId());
         } catch (IOException i) {
             System.out.println("[PIS] - Couldn't Save chunk " + chunk.getChunkId() + " on this peer");

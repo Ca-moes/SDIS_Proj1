@@ -25,4 +25,6 @@ cd out
 
 rmiregistry &
 
+sleep 1
+
 java peer.Peer 1.0 "$INDEX" peer"$INDEX" 224.1.1.1:81 224.1.1.2:82 224.1.1.3:83

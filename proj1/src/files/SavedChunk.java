@@ -1,11 +1,9 @@
 package files;
 
 import java.io.Serializable;
-import java.util.Arrays;
-import java.util.Objects;
 
 public class SavedChunk extends Chunk implements Serializable {
-    private final transient byte[] body;
+    private transient byte[] body;
 
     public SavedChunk(String fileId, int chunkNo, int replicationDegree, byte[] body) {
         super(fileId, chunkNo, replicationDegree);
@@ -19,6 +17,10 @@ public class SavedChunk extends Chunk implements Serializable {
 
     public byte[] getBody() {
         return body;
+    }
+
+    public void clearBody() {
+        body = null;
     }
 
     @Override
