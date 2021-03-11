@@ -24,7 +24,7 @@ public class Peer implements InitiatorPeer {
     private MulticastService multicastDataRestore;
 
     private String serviceAccessPoint;
-    private String peerId;
+    private int peerId;
     private String protocolVersion;
 
     private final ExecutorService threadPoolExecutor;
@@ -43,7 +43,7 @@ public class Peer implements InitiatorPeer {
         try {
             InitiatorPeer stub = (InitiatorPeer) UnicastRemoteObject.exportObject(peer, 0);
             Registry registry = LocateRegistry.getRegistry();
-            registry.rebind(peer.getPeerId(), stub);
+            registry.rebind(peer.getServiceAccessPoint(), stub);
             System.err.println("[PEER] - RMI registry complete");
         } catch (Exception e) {
             System.err.println("[PEER] - RMI registry exception: " + e.toString());
@@ -69,7 +69,7 @@ public class Peer implements InitiatorPeer {
 
     private void parseArgs(String[] args) throws IOException {
         this.protocolVersion = args[0];
-        this.peerId = args[1];
+        this.peerId = Integer.parseInt(args[1]);
         this.serviceAccessPoint = args[2];
         // parse multicast control
         Pattern p = Pattern.compile("^\\s*(.*?):(\\d+)\\s*$");
@@ -107,11 +107,11 @@ public class Peer implements InitiatorPeer {
         return multicastDataRestore;
     }
 
-    public Object getServiceAccessPoint() {
+    public String getServiceAccessPoint() {
         return serviceAccessPoint;
     }
 
-    public String getPeerId() {
+    public int getPeerId() {
         return peerId;
     }
 

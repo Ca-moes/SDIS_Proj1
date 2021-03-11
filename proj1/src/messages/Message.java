@@ -11,13 +11,13 @@ import java.util.Objects;
 public abstract class Message {
     protected final String protocolVersion;
     protected final String type;
-    protected final String senderId;
+    protected final int senderId;
     protected final String fileId;
     protected final int chunkNo;
     protected final int replicationDegree;
     protected final byte[] body;
 
-    public Message(String protocolVersion, String type, String senderId, String fileId, int chunkNo, int replicationDegree, byte[] body) {
+    public Message(String protocolVersion, String type, int senderId, String fileId, int chunkNo, int replicationDegree, byte[] body) {
         this.protocolVersion = protocolVersion;
         this.type = type;
         this.senderId = senderId;
@@ -44,7 +44,7 @@ public abstract class Message {
         // saving the data
         String version = args[0];
         String type = args[1];
-        String senderId = args[2];
+        int senderId = Integer.parseInt(args[2]);
         String fileId = args[3];
         byte[] body = new byte[0];
         if (parts.length == 2) body = Arrays.copyOfRange(packet.getData(), headerBytes + 4, packet.getLength());
@@ -74,7 +74,7 @@ public abstract class Message {
     }
 
     public byte[] encodeToSend() {
-        return String.format("%s %s %s %s %d %d \r\n\r\n",
+        return String.format("%s %s %d %s %d %d \r\n\r\n",
                 this.protocolVersion,
                 this.type,
                 this.senderId,
@@ -84,8 +84,8 @@ public abstract class Message {
                 .getBytes(StandardCharsets.UTF_8);
     }
 
-    public boolean isOwner(String senderId) {
-        return this.senderId.equals(senderId);
+    public boolean isOwner(int senderId) {
+        return this.senderId == senderId;
     }
 
     @Override
@@ -94,7 +94,7 @@ public abstract class Message {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Message message = (Message) o;
-        return chunkNo == message.chunkNo && Objects.equals(protocolVersion, message.protocolVersion) && Objects.equals(type, message.type) && Objects.equals(senderId, message.senderId) && Objects.equals(fileId, message.fileId);
+        return chunkNo == message.chunkNo && Objects.equals(protocolVersion, message.protocolVersion) && Objects.equals(type, message.type) && senderId == message.senderId && Objects.equals(fileId, message.fileId);
     }
 
     @Override
@@ -125,7 +125,7 @@ public abstract class Message {
         return type;
     }
 
-    public String getSenderId() {
+    public int getSenderId() {
         return senderId;
     }
 

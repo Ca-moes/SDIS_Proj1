@@ -7,7 +7,7 @@ import tasks.Task;
 import java.nio.charset.StandardCharsets;
 
 public class ChunkMessage extends Message {
-    public ChunkMessage(String protocolVersion, String senderId, String fileId, int chunkNo, byte[] body) {
+    public ChunkMessage(String protocolVersion, int senderId, String fileId, int chunkNo, byte[] body) {
         super(protocolVersion, "CHUNK", senderId, fileId, chunkNo, 0, body);
     }
 

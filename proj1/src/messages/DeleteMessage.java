@@ -7,7 +7,7 @@ import tasks.Task;
 import java.nio.charset.StandardCharsets;
 
 public class DeleteMessage extends Message {
-    public DeleteMessage(String protocolVersion, String senderId, String fileId) {
+    public DeleteMessage(String protocolVersion, int senderId, String fileId) {
         super(protocolVersion, "DELETE", senderId, fileId, 0, 0, new byte[0]);
     }
 

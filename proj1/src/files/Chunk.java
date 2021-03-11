@@ -7,7 +7,7 @@ public abstract class Chunk implements Serializable {
     protected String fileId;
     protected int chunkNo;
     protected int replicationDegree;
-    protected final HashSet<String> peers;
+    protected final HashSet<Integer> peers;
 
     public Chunk(String fileId, int chunkNo) {
         this.fileId = fileId;
@@ -52,7 +52,7 @@ public abstract class Chunk implements Serializable {
         return replicationDegree;
     }
 
-    public HashSet<String> getPeers() {
+    public HashSet<Integer> getPeers() {
         return peers;
     }
 }

@@ -25,4 +25,4 @@ cd out
 
 rmiregistry &
 
-java peer.Peer 1.0 peer"$INDEX" sap 224.1.1.1:81 224.1.1.2:82 224.1.1.3:83
+java peer.Peer 1.0 "$INDEX" peer"$INDEX" 224.1.1.1:81 224.1.1.2:82 224.1.1.3:83
