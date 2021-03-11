@@ -7,7 +7,7 @@ import tasks.Task;
 import java.nio.charset.StandardCharsets;
 
 public class RemovedMessage extends Message {
-    public RemovedMessage(String protocolVersion, String senderId, String fileId, int chunkNo) {
+    public RemovedMessage(String protocolVersion, int senderId, String fileId, int chunkNo) {
         super(protocolVersion, "REMOVED", senderId, fileId, chunkNo, 0, new byte[0]);
     }
 

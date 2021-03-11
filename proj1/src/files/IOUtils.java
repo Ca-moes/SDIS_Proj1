@@ -29,6 +29,19 @@ public class IOUtils {
         return hashToASCII(name + modificationDate + dataSHA);
     }
 
+    public static double getNumberOfChunks(String pathname) {
+        File file = new File(pathname);
+        BasicFileAttributes attributes = null;
+        try {
+            attributes = Files.getFileAttributeView(file.toPath(), BasicFileAttributeView.class).readAttributes();
+
+            return (attributes.size() % 64000.0 == 0) ? attributes.size() / 64000.0 : Math.ceil(attributes.size() / 64000.0);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return 0;
+    }
+
     private static String hashToASCII(String string) {
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");

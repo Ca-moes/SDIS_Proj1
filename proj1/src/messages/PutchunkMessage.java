@@ -5,7 +5,7 @@ import tasks.PutchunkTask;
 import tasks.Task;
 
 public class PutchunkMessage extends Message {
-    public PutchunkMessage(String protocolVersion, String senderId, String fileId, int chunkNo, int replicationDegree, byte[] body) {
+    public PutchunkMessage(String protocolVersion, int senderId, String fileId, int chunkNo, int replicationDegree, byte[] body) {
         super(protocolVersion, "PUTCHUNK", senderId, fileId, chunkNo, replicationDegree, body);
     }
 

@@ -7,8 +7,7 @@ import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Comparator;
-import java.util.HashSet;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class PeerInternalState implements Serializable {
@@ -19,8 +18,8 @@ public class PeerInternalState implements Serializable {
     private final ConcurrentHashMap<String, String> backedUpFilesMap;
     private final HashSet<String> deletedFiles;
 
-    private static transient String PEER_DIRECTORY = "%s";
-    private static transient String DB_FILENAME = "%s/data.ser";
+    private static transient String PEER_DIRECTORY = "peer%d";
+    private static transient String DB_FILENAME = "peer%d/data.ser";
     private static transient String CHUNK_PATH = "%s/%s/%d";
 
     private final transient Peer peer;
@@ -103,6 +102,8 @@ public class PeerInternalState implements Serializable {
             fos.write(chunk.getBody());
             fos.close();
 
+            chunk.clearBody();
+
             chunk.getPeers().add(peer.getPeerId());
         } catch (IOException i) {
             System.out.println("[PIS] - Couldn't Save chunk " + chunk.getChunkId() + " on this peer");
@@ -110,13 +111,13 @@ public class PeerInternalState implements Serializable {
         }
     }
 
-    public void updateStoredConfirmation(SentChunk chunk, String replier) {
+    public void updateStoredConfirmation(SentChunk chunk, int replier) {
         if (sentChunksMap.containsKey(chunk.getChunkId())) {
             sentChunksMap.get(chunk.getChunkId()).getPeers().add(replier);
         }
     }
 
-    public void updateStoredConfirmation(SavedChunk chunk, String replier) {
+    public void updateStoredConfirmation(SavedChunk chunk, int replier) {
         if (savedChunksMap.containsKey(chunk.getChunkId())) {
             savedChunksMap.get(chunk.getChunkId()).getPeers().add(replier);
         }

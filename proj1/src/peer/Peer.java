@@ -1,5 +1,6 @@
 package peer;
 
+import files.IOUtils;
 import files.PeerFile;
 import messages.DeleteMessage;
 import messages.Message;
@@ -24,10 +25,11 @@ public class Peer implements InitiatorPeer {
     private MulticastService multicastDataRestore;
 
     private String serviceAccessPoint;
-    private String peerId;
+    private int peerId;
     private String protocolVersion;
 
     private final ExecutorService threadPoolExecutor;
+    private final ExecutorService senderExecutor;
 
     private final PeerInternalState internalState;
 
@@ -43,7 +45,7 @@ public class Peer implements InitiatorPeer {
         try {
             InitiatorPeer stub = (InitiatorPeer) UnicastRemoteObject.exportObject(peer, 0);
             Registry registry = LocateRegistry.getRegistry();
-            registry.rebind(peer.getPeerId(), stub);
+            registry.rebind(peer.getServiceAccessPoint(), stub);
             System.err.println("[PEER] - RMI registry complete");
         } catch (Exception e) {
             System.err.println("[PEER] - RMI registry exception: " + e.toString());
@@ -56,6 +58,7 @@ public class Peer implements InitiatorPeer {
     public Peer(String[] args) throws IOException {
         parseArgs(args);
         this.threadPoolExecutor = Executors.newFixedThreadPool(64);
+        this.senderExecutor = Executors.newFixedThreadPool(32);
         this.internalState = PeerInternalState.loadInternalState(this);
     }
 
@@ -69,7 +72,7 @@ public class Peer implements InitiatorPeer {
 
     private void parseArgs(String[] args) throws IOException {
         this.protocolVersion = args[0];
-        this.peerId = args[1];
+        this.peerId = Integer.parseInt(args[1]);
         this.serviceAccessPoint = args[2];
         // parse multicast control
         Pattern p = Pattern.compile("^\\s*(.*?):(\\d+)\\s*$");
@@ -107,11 +110,11 @@ public class Peer implements InitiatorPeer {
         return multicastDataRestore;
     }
 
-    public Object getServiceAccessPoint() {
+    public String getServiceAccessPoint() {
         return serviceAccessPoint;
     }
 
-    public String getPeerId() {
+    public int getPeerId() {
         return peerId;
     }
 
@@ -132,6 +135,8 @@ public class Peer implements InitiatorPeer {
         System.out.println("BACKUP PROTOCOL");
         System.out.printf("Pathname: %s | Replication Degree: %d\n", pathname, replicationDegree);
 
+        double numberOfChunks = IOUtils.getNumberOfChunks(pathname);
+
         try {
             PeerFile file = new PeerFile(pathname);
             this.getInternalState().getBackedUpFilesMap().put(pathname, file.getFileID());
@@ -150,7 +155,8 @@ public class Peer implements InitiatorPeer {
                         buffer
                 );
                 size = buffer.length;
-                new Thread(new BackupChunk(message, this)).start();
+                this.senderExecutor.submit(new BackupChunk(message, this));
+                System.out.printf("[%s] SENDING CHUNK: %d of %f\n", pathname, i, numberOfChunks);
                 i++;
             }
             if (size == 64000) {
@@ -163,7 +169,7 @@ public class Peer implements InitiatorPeer {
                         replicationDegree,
                         new byte[0]
                 );
-                new Thread(new BackupChunk(message, this)).start();
+                this.senderExecutor.submit(new BackupChunk(message, this));
             }
         } catch (IOException e) {
             e.printStackTrace();
