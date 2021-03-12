@@ -64,7 +64,6 @@ public class FutureFile {
             // waits here for the respective promise to be fulfilled
             if (chunk == null || chunk.getBody() == null) {
                 System.out.println("[PEER] One or more chunks are missing!");
-                System.out.println(chunk);
                 return;
             }
             if (chunk.getChunkNo() != this.numChunks - 1 && chunk.getBody().length != Constants.CHUNK_SIZE) {

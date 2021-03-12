@@ -1,8 +1,5 @@
 package tasks;
 
-import files.Chunk;
-import files.SavedChunk;
-import files.SentChunk;
 import messages.ChunkMessage;
 import peer.Peer;
 

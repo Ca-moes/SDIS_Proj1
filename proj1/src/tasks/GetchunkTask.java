@@ -14,7 +14,7 @@ public class GetchunkTask extends Task {
     @Override
     public void start() {
         if (!this.peer.getInternalState().getSavedChunksMap().containsKey(message.getFileId() + "_" + message.getChunkNo())) {
-            System.out.printf("[GETCHUNK] I dont have that chunk! %s\n", message.getFileId() + "_" + message.getChunkNo());
+            // System.out.printf("[GETCHUNK] I dont have that chunk! %s\n", message.getFileId() + "_" + message.getChunkNo());
             return;
         }
 
@@ -22,7 +22,7 @@ public class GetchunkTask extends Task {
         this.peer.getInternalState().fillBodyFromDisk(chunk);
 
         if (chunk.getBody() == null) {
-            System.out.println("[GETCHUNK] I was supposed to have that chunk, but I don't!");
+            // System.out.println("[GETCHUNK] I was supposed to have that chunk, but I don't!");
             return;
         }
 
@@ -37,11 +37,11 @@ public class GetchunkTask extends Task {
         sleep();
 
         if (chunk.isAlreadyProvided()) {
-            System.out.println("[GETCHUNK] I've received a CHUNK message for this chunk so I won't provide it again");
+            // System.out.println("[GETCHUNK] I've received a CHUNK message for this chunk so I won't provide it again");
             return;
         }
         if (chunk.getBody() == null) {
-            System.out.println("[GETCHUNK] Something happened and this chunk lost its body!");
+            // System.out.println("[GETCHUNK] Something happened and this chunk lost its body!");
             return;
         }
 
