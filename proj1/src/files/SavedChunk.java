@@ -4,6 +4,8 @@ import java.io.Serializable;
 
 public class SavedChunk extends Chunk implements Serializable {
     private transient byte[] body;
+    private boolean isBeingHandled = false;
+    private boolean alreadyProvided = false;
 
     public SavedChunk(String fileId, int chunkNo, int replicationDegree, byte[] body) {
         super(fileId, chunkNo, replicationDegree);
@@ -31,5 +33,25 @@ public class SavedChunk extends Chunk implements Serializable {
                 ", replicationDegree=" + replicationDegree +
                 ", peers=" + peers +
                 '}';
+    }
+
+    public void setBody(byte[] body) {
+        this.body = body;
+    }
+
+    public void setBeingHandled(boolean beingHandled) {
+        isBeingHandled = beingHandled;
+    }
+
+    public void setAlreadyProvided(boolean alreadyProvided) {
+        this.alreadyProvided = alreadyProvided;
+    }
+
+    public boolean isBeingHandled() {
+        return isBeingHandled;
+    }
+
+    public boolean isAlreadyProvided() {
+        return alreadyProvided;
     }
 }

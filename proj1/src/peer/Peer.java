@@ -1,7 +1,8 @@
 package peer;
 
+import files.FutureFile;
 import files.IOUtils;
-import files.PeerFile;
+import files.BackedUpFile;
 import messages.DeleteMessage;
 import messages.Message;
 import messages.MulticastService;
@@ -122,6 +123,10 @@ public class Peer implements InitiatorPeer {
         return protocolVersion;
     }
 
+    public ExecutorService getSenderExecutor() {
+        return senderExecutor;
+    }
+
     public ExecutorService getThreadPoolExecutor() {
         return threadPoolExecutor;
     }
@@ -135,15 +140,15 @@ public class Peer implements InitiatorPeer {
         System.out.println("BACKUP PROTOCOL");
         System.out.printf("Pathname: %s | Replication Degree: %d\n", pathname, replicationDegree);
 
-        double numberOfChunks = IOUtils.getNumberOfChunks(pathname);
+        int numberOfChunks = IOUtils.getNumberOfChunks(pathname);
 
         try {
-            PeerFile file = new PeerFile(pathname);
+            BackedUpFile file = new BackedUpFile(pathname);
             this.getInternalState().getBackedUpFilesMap().put(pathname, file.getFileID());
             this.getInternalState().commit();
 
             byte[] buffer;
-            int i = 1;
+            int i = 0;
             int size = 0;
             while ((buffer = file.getNextChunk()) != null) {
                 Message message = new PutchunkMessage(
@@ -156,7 +161,7 @@ public class Peer implements InitiatorPeer {
                 );
                 size = buffer.length;
                 this.senderExecutor.submit(new BackupChunk(message, this));
-                System.out.printf("[%s] SENDING CHUNK: %d of %f\n", pathname, i, numberOfChunks);
+                System.out.printf("[%s] SENDING CHUNK: %d of %d\n", pathname, i+1, numberOfChunks);
                 i++;
             }
             if (size == 64000) {
@@ -170,6 +175,7 @@ public class Peer implements InitiatorPeer {
                         new byte[0]
                 );
                 this.senderExecutor.submit(new BackupChunk(message, this));
+                System.out.printf("[%s] SENDING CHUNK: %d of %d\n", pathname, i+1, numberOfChunks);
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -178,7 +184,16 @@ public class Peer implements InitiatorPeer {
 
     @Override
     public void restore(String pathname) throws RemoteException {
-        System.out.println("RESTORE PROTOCOL - Not yet implemented");
+        System.out.println("RESTORE PROTOCOL");
+        System.out.printf("Pathname: %s\n", pathname);
+
+        if (this.internalState.getBackedUpFilesMap().containsKey(pathname)) {
+            System.out.println("[PEER] I backed up that file. Starting restoration...");
+            String fileId = this.internalState.getBackedUpFilesMap().get(pathname);
+
+            FutureFile futureFile = new FutureFile(fileId, pathname, this);
+            futureFile.restoreFile();
+        }
     }
 
     @Override

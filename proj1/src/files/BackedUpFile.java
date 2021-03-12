@@ -5,12 +5,12 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
 
-public class PeerFile {
+public class BackedUpFile {
     private final String fileID;
     private final String pathname;
     private final InputStream chunkStream;
 
-    public PeerFile(String pathname) throws IOException {
+    public BackedUpFile(String pathname) throws IOException {
         this.pathname = pathname;
         this.chunkStream = new FileInputStream(pathname);
         this.fileID = IOUtils.getFileId(pathname);

@@ -68,6 +68,9 @@ public abstract class Message {
             case "STORED":
                 chunkNo = Integer.parseInt(args[4]);
                 return new StoredMessage(version, senderId, fileId, chunkNo);
+            case "GETCHUNK":
+                chunkNo = Integer.parseInt(args[4]);
+                return new GetchunkMessage(version, senderId, fileId, chunkNo);
             default:
                 throw new Exception("COULD NOT PARSE MESSAGE PACKET");
         }

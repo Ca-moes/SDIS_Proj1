@@ -7,6 +7,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class SentChunk extends Chunk implements Serializable {
+    private transient byte[] body = null;
+
     public SentChunk(String fileId, int chunkNo, int replicationDegree) {
         super(fileId, chunkNo, replicationDegree);
     }
@@ -28,5 +30,17 @@ public class SentChunk extends Chunk implements Serializable {
                 ", replicationDegree=" + replicationDegree +
                 ", peers=" + peers +
                 '}';
+    }
+
+    public void setBody(byte[] body) {
+        this.body = body;
+    }
+
+    public void clearBody() {
+        body = null;
+    }
+
+    public byte[] getBody() {
+        return body;
     }
 }
