@@ -1,5 +1,6 @@
 package peer;
 
+import files.Chunk;
 import files.SavedChunk;
 import files.SentChunk;
 
@@ -161,15 +162,13 @@ public class PeerInternalState implements Serializable {
         return out.toString();
     }
 
-    public void deleteChunk(SavedChunk chunk) {
+    public void deleteChunk(Chunk chunk) {
         String filepath = String.format(CHUNK_PATH, PEER_DIRECTORY, chunk.getFileId(), chunk.getChunkNo());
         File file = new File(filepath);
 
-        this.savedChunksMap.remove(chunk.getChunkId());
         file.delete();
 
         this.deleteEmptyFolders();
-        this.commit();
     }
 
     private void deleteEmptyFolders() {
@@ -199,7 +198,7 @@ public class PeerInternalState implements Serializable {
         return deletedFiles;
     }
 
-    public void fillBodyFromDisk(SavedChunk chunk) {
+    public void fillBodyFromDisk(Chunk chunk) {
         if (chunk != null && chunk.getBody() == null) {
             String filepath = String.format(CHUNK_PATH, PEER_DIRECTORY, chunk.getFileId(), chunk.getChunkNo());
             File file = new File(filepath);

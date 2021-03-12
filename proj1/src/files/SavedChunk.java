@@ -3,7 +3,6 @@ package files;
 import java.io.Serializable;
 
 public class SavedChunk extends Chunk implements Serializable {
-    private transient byte[] body;
     private boolean isBeingHandled = false;
     private boolean alreadyProvided = false;
 
@@ -17,12 +16,9 @@ public class SavedChunk extends Chunk implements Serializable {
         this.body = new byte[0];
     }
 
-    public byte[] getBody() {
-        return body;
-    }
-
-    public void clearBody() {
-        body = null;
+    public SavedChunk(SentChunk chunk) {
+        super(chunk.getFileId(), chunk.getChunkNo());
+        this.body = chunk.getBody();
     }
 
     @Override
@@ -33,10 +29,6 @@ public class SavedChunk extends Chunk implements Serializable {
                 ", replicationDegree=" + replicationDegree +
                 ", peers=" + peers +
                 '}';
-    }
-
-    public void setBody(byte[] body) {
-        this.body = body;
     }
 
     public void setBeingHandled(boolean beingHandled) {

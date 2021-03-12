@@ -16,6 +16,8 @@ public class DeleteTask extends Task {
             SavedChunk chunk = this.peer.getInternalState().getSavedChunksMap().get(chunkId);
             if (chunk.getFileId().equals(message.getFileId())) {
                 this.peer.getInternalState().deleteChunk(chunk);
+                this.peer.getInternalState().getSavedChunksMap().remove(chunk.getChunkId());
+                this.peer.getInternalState().commit();
             }
         }
     }

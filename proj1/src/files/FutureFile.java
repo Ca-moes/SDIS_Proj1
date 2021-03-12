@@ -71,22 +71,32 @@ public class FutureFile {
                 return;
             }
             System.out.printf("[PEER] Received Chunk - %s\n", chunk.getChunkId());
-            // All is good, save this chunk in it's position so we can then assemble the file
+            // All is good, add chunk to the chunks to be handled
             filledChunks.add(chunk);
+            // store the chunk locally, we could theoretically get a 64GB file and
+            // not all of us have a 64GB+ RAM PC :(
+            peer.getInternalState().storeChunk(new SavedChunk(chunk));
+            // so we need to clear the body as we dont need it in cache
+            chunk.clearBody();
         }
+
+        System.out.printf("[PEER] Gathered all chunks (%d) - Starting Reconstruction\n", filledChunks.size());
 
         // we did not guarantee the chunks were sorted, will do that now
         filledChunks.sort(Comparator.comparingInt(Chunk::getChunkNo));
 
+        // read the file from the filesystem
         File restored = new File(this.restoredPathname);
         restored.getParentFile().mkdirs();
         restored.createNewFile();
         FileOutputStream stream = new FileOutputStream(restored, true);
         for (SentChunk chunk : filledChunks) {
+            peer.getInternalState().fillBodyFromDisk(chunk);
             stream.write(chunk.getBody());
+            peer.getInternalState().deleteChunk(chunk);
+            chunk.clearBody();
         }
         stream.close();
         System.out.printf("[PEER] %s RESTORED SUCCESSFULLY!\n", this.pathname);
     }
-
 }

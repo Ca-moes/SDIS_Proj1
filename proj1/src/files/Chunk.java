@@ -8,12 +8,21 @@ public abstract class Chunk implements Serializable {
     protected int chunkNo;
     protected int replicationDegree;
     protected final HashSet<Integer> peers;
+    protected transient byte[] body;
 
     public Chunk(String fileId, int chunkNo) {
         this.fileId = fileId;
         this.chunkNo = chunkNo;
         this.replicationDegree = 0;
         this.peers = new HashSet<>();
+    }
+
+    public Chunk(String fileId, int chunkNo, int replicationDegree, byte[] body) {
+        this.fileId = fileId;
+        this.chunkNo = chunkNo;
+        this.replicationDegree = replicationDegree;
+        this.peers = new HashSet<>();
+        this.body = body;
     }
 
     public Chunk(String fileId, int chunkNo, int replicationDegree) {
@@ -29,6 +38,18 @@ public abstract class Chunk implements Serializable {
         if (o == null || getClass() != o.getClass()) return false;
         Chunk chunk = (Chunk) o;
         return chunkNo == chunk.chunkNo && Objects.equals(fileId, chunk.fileId);
+    }
+
+    public void setBody(byte[] body) {
+        this.body = body;
+    }
+
+    public byte[] getBody() {
+        return body;
+    }
+
+    public void clearBody() {
+        this.body = null;
     }
 
     @Override
