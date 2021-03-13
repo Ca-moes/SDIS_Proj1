@@ -38,7 +38,6 @@ public class FutureFile {
         this.restoredPathname = String.format(restoredPathname, this.peer.getInternalState().getPeerDirectory(), new File(pathname).getName());
     }
 
-    //? we will be using this if we want to save the chunks *FIRST* and *THEN* reconstruct the file
     public void restoreFile() {
         try {
             getChunks();
@@ -60,7 +59,7 @@ public class FutureFile {
         }
 
         for (Future<SentChunk> promised : promisedChunks) {
-            SentChunk chunk = promised.get();;
+            SentChunk chunk = promised.get();
             // waits here for the respective promise to be fulfilled
             if (chunk == null || chunk.getBody() == null) {
                 System.out.println("[PEER] One or more chunks are missing!");
