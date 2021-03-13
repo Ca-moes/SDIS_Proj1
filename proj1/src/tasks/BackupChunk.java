@@ -31,7 +31,7 @@ public class BackupChunk implements Runnable {
                 timeout = 2 * timeout;
             } else {
                 this.peer.getInternalState().commit();
-                System.out.println(chunk + "\nBACKUP COMPLETE");
+                System.out.println("[PEER] Chunk Backed Up - " + chunk.getChunkId());
                 break;
             }
         }

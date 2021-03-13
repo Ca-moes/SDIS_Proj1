@@ -1,9 +1,11 @@
 package peer;
 
+import files.Chunk;
 import files.SavedChunk;
 import files.SentChunk;
 
 import java.io.*;
+import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -19,6 +21,11 @@ public class PeerInternalState implements Serializable {
     private final HashSet<String> deletedFiles;
 
     private static transient String PEER_DIRECTORY = "peer%d";
+
+    public String getPeerDirectory() {
+        return PEER_DIRECTORY;
+    }
+
     private static transient String DB_FILENAME = "peer%d/data.ser";
     private static transient String CHUNK_PATH = "%s/%s/%d";
 
@@ -155,15 +162,13 @@ public class PeerInternalState implements Serializable {
         return out.toString();
     }
 
-    public void deleteChunk(SavedChunk chunk) {
+    public void deleteChunk(Chunk chunk) {
         String filepath = String.format(CHUNK_PATH, PEER_DIRECTORY, chunk.getFileId(), chunk.getChunkNo());
         File file = new File(filepath);
 
-        this.savedChunksMap.remove(chunk.getChunkId());
         file.delete();
 
         this.deleteEmptyFolders();
-        this.commit();
     }
 
     private void deleteEmptyFolders() {
@@ -191,5 +196,17 @@ public class PeerInternalState implements Serializable {
 
     public HashSet<String> getDeletedFiles() {
         return deletedFiles;
+    }
+
+    public void fillBodyFromDisk(Chunk chunk) {
+        if (chunk != null && chunk.getBody() == null) {
+            String filepath = String.format(CHUNK_PATH, PEER_DIRECTORY, chunk.getFileId(), chunk.getChunkNo());
+            File file = new File(filepath);
+            try {
+                chunk.setBody(Files.readAllBytes(file.toPath()));
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
     }
 }

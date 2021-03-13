@@ -29,13 +29,13 @@ public class IOUtils {
         return hashToASCII(name + modificationDate + dataSHA);
     }
 
-    public static double getNumberOfChunks(String pathname) {
+    public static int getNumberOfChunks(String pathname) {
         File file = new File(pathname);
-        BasicFileAttributes attributes = null;
+        BasicFileAttributes attributes;
         try {
             attributes = Files.getFileAttributeView(file.toPath(), BasicFileAttributeView.class).readAttributes();
 
-            return (attributes.size() % 64000.0 == 0) ? attributes.size() / 64000.0 : Math.ceil(attributes.size() / 64000.0);
+            return (int) ((attributes.size() % 64000.0 == 0) ? attributes.size() / 64000.0 + 1 : Math.ceil(attributes.size() / 64000.0));
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -64,6 +64,8 @@ public class IOUtils {
         }
         return new String(hexChars);
     }
+
+
 
 
 }
