@@ -19,7 +19,7 @@ public class PeerInternalState implements Serializable {
     // chunkId -> saved chunk
     private final ConcurrentHashMap<String, SavedChunk> savedChunksMap;
     private final ConcurrentHashMap<String, String> backedUpFilesMap;
-    private final HashSet<String> deletedFiles;
+    private final Set<String> deletedFiles;
 
     private static transient String PEER_DIRECTORY = "peer%d";
     private static transient String DB_FILENAME = "peer%d/data.ser";
@@ -32,7 +32,7 @@ public class PeerInternalState implements Serializable {
         this.sentChunksMap = new ConcurrentHashMap<>();
         this.savedChunksMap = new ConcurrentHashMap<>();
         this.backedUpFilesMap = new ConcurrentHashMap<>();
-        this.deletedFiles = new HashSet<>();
+        this.deletedFiles = ConcurrentHashMap.newKeySet();;
         this.peer = peer;
     }
 
@@ -115,13 +115,13 @@ public class PeerInternalState implements Serializable {
         }
     }
 
-    public void updateStoredConfirmation(SentChunk chunk, int replier) {
+    public synchronized void updateStoredConfirmation(SentChunk chunk, int replier) {
         if (sentChunksMap.containsKey(chunk.getChunkId())) {
             sentChunksMap.get(chunk.getChunkId()).getPeers().add(replier);
         }
     }
 
-    public void updateStoredConfirmation(SavedChunk chunk, int replier) {
+    public synchronized void updateStoredConfirmation(SavedChunk chunk, int replier) {
         if (savedChunksMap.containsKey(chunk.getChunkId())) {
             savedChunksMap.get(chunk.getChunkId()).getPeers().add(replier);
         }
@@ -195,7 +195,7 @@ public class PeerInternalState implements Serializable {
         this.commit();
     }
 
-    public HashSet<String> getDeletedFiles() {
+    public Set<String> getDeletedFiles() {
         return deletedFiles;
     }
 

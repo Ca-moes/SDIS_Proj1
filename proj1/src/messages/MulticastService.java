@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.InetAddress;
 import java.net.MulticastSocket;
+import java.util.Arrays;
 
 public class MulticastService extends MulticastSocket implements Runnable {
     private final InetAddress address;
@@ -44,12 +45,7 @@ public class MulticastService extends MulticastSocket implements Runnable {
             DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
             try {
                 this.receive(packet);
-                Message m = Message.fromDatagramPacket(packet);
-                // if isOwner we discard the message
-                if (!m.isOwner(this.peer.getPeerId())) {
-                    // System.out.printf("[MulticastService] (%s) - Received %s Message from %s - bytes received in body: %d%n", this.identifier, m.getType(), m.getSenderId(), m.getBody().length);
-                    peer.getThreadPoolExecutor().submit(new Dispatcher(m, peer));
-                }
+                peer.getTaskExecutor().submit(new Dispatcher(Arrays.copyOf(buffer, buffer.length), peer, packet.getLength()));
             } catch (Exception e) {
                 e.printStackTrace();
             }

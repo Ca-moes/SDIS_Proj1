@@ -27,9 +27,9 @@ public abstract class Message {
         this.body = body;
     }
 
-    public static Message fromDatagramPacket(DatagramPacket packet) throws Exception {
-        String packetData = new String(packet.getData());
-        packetData = packetData.substring(0, Math.min(packet.getLength(), packetData.length()));
+    public static Message fromDatagramPacket(byte[] packet, int packetLength) throws Exception {
+        String packetData = new String(packet);
+        packetData = packetData.substring(0, Math.min(packetLength, packetData.length()));
         // Splitting the packet data into two parts -> header and body, the splitter is two CRLF i.e. 2 \r\n
         String[] parts = packetData.split("\r\n\r\n", 2);
 
@@ -47,7 +47,7 @@ public abstract class Message {
         int senderId = Integer.parseInt(args[2]);
         String fileId = args[3];
         byte[] body = new byte[0];
-        if (parts.length == 2) body = Arrays.copyOfRange(packet.getData(), headerBytes + 4, packet.getLength());
+        if (parts.length == 2) body = Arrays.copyOfRange(packet, headerBytes + 4, packetLength);
 
         int chunkNo;
         int replicationDegree;

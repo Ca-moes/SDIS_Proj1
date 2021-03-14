@@ -14,6 +14,7 @@ import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.regex.Matcher;
@@ -28,8 +29,7 @@ public class Peer implements InitiatorPeer {
     private int peerId;
     private String protocolVersion;
 
-    private final ExecutorService threadPoolExecutor;
-    private final ExecutorService senderExecutor;
+    private final ExecutorService taskExecutor;
 
     private final PeerInternalState internalState;
 
@@ -57,8 +57,7 @@ public class Peer implements InitiatorPeer {
 
     public Peer(String[] args) throws IOException {
         parseArgs(args);
-        this.threadPoolExecutor = Executors.newFixedThreadPool(64);
-        this.senderExecutor = Executors.newFixedThreadPool(64);
+        this.taskExecutor = Executors.newFixedThreadPool(Constants.TASK_WORKERS);
         this.internalState = PeerInternalState.loadInternalState(this);
     }
 
@@ -122,12 +121,8 @@ public class Peer implements InitiatorPeer {
         return protocolVersion;
     }
 
-    public ExecutorService getSenderExecutor() {
-        return senderExecutor;
-    }
-
-    public ExecutorService getThreadPoolExecutor() {
-        return threadPoolExecutor;
+    public ExecutorService getTaskExecutor() {
+        return taskExecutor;
     }
 
     public PeerInternalState getInternalState() {
@@ -140,6 +135,8 @@ public class Peer implements InitiatorPeer {
         System.out.printf("Pathname: %s | Replication Degree: %d\n", pathname, replicationDegree);
 
         int numberOfChunks = IOUtils.getNumberOfChunks(pathname);
+
+        ExecutorService senderExecutor = Executors.newFixedThreadPool(Constants.TASK_WORKERS/2);
 
         try {
             BackedUpFile file = new BackedUpFile(pathname);
@@ -156,10 +153,10 @@ public class Peer implements InitiatorPeer {
                         file.getFileID(),
                         i,
                         replicationDegree,
-                        buffer
+                        Arrays.copyOf(buffer, buffer.length)
                 );
                 size = buffer.length;
-                this.senderExecutor.submit(new BackupChunk(message, this, true));
+                senderExecutor.submit(new BackupChunk(message, this, true));
                 System.out.printf("[%s] SENDING CHUNK: %d of %d\n", pathname, i+1, numberOfChunks);
                 i++;
             }
@@ -173,7 +170,7 @@ public class Peer implements InitiatorPeer {
                         replicationDegree,
                         new byte[0]
                 );
-                this.senderExecutor.submit(new BackupChunk(message, this, true));
+                senderExecutor.submit(new BackupChunk(message, this, true));
                 System.out.printf("[%s] SENDING CHUNK: %d of %d\n", pathname, i+1, numberOfChunks);
             }
         } catch (IOException e) {
@@ -192,6 +189,8 @@ public class Peer implements InitiatorPeer {
 
             FutureFile futureFile = new FutureFile(fileId, pathname, this);
             futureFile.restoreFile();
+        } else {
+            System.out.println("[PEER] I dont have that file backed up! Aborting...");
         }
     }
 

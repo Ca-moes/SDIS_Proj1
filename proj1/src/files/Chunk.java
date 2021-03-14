@@ -2,12 +2,13 @@ package files;
 
 import java.io.Serializable;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 public abstract class Chunk implements Serializable {
     protected String fileId;
     protected int chunkNo;
     protected int replicationDegree;
-    protected final HashSet<Integer> peers;
+    protected final Set<Integer> peers;
     protected transient byte[] body;
     protected boolean receivedPutchunk = false;
 
@@ -23,14 +24,14 @@ public abstract class Chunk implements Serializable {
         this.fileId = fileId;
         this.chunkNo = chunkNo;
         this.replicationDegree = 0;
-        this.peers = new HashSet<>();
+        this.peers = ConcurrentHashMap.newKeySet();
     }
 
     public Chunk(String fileId, int chunkNo, int replicationDegree, byte[] body) {
         this.fileId = fileId;
         this.chunkNo = chunkNo;
         this.replicationDegree = replicationDegree;
-        this.peers = new HashSet<>();
+        this.peers = ConcurrentHashMap.newKeySet();
         this.body = body;
     }
 
@@ -38,7 +39,7 @@ public abstract class Chunk implements Serializable {
         this.fileId = fileId;
         this.chunkNo = chunkNo;
         this.replicationDegree = replicationDegree;
-        this.peers = new HashSet<>();
+        this.peers = ConcurrentHashMap.newKeySet();
     }
 
     @Override
@@ -82,7 +83,7 @@ public abstract class Chunk implements Serializable {
         return replicationDegree;
     }
 
-    public HashSet<Integer> getPeers() {
+    public Set<Integer> getPeers() {
         return peers;
     }
 }

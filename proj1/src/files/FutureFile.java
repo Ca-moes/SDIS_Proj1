@@ -11,6 +11,8 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
 public class FutureFile {
@@ -53,9 +55,11 @@ public class FutureFile {
         System.out.printf("Number of chunks: %d\n", this.numChunks);
         System.out.println("--------------------------------------------------------------------------");
 
+        ExecutorService receiverExecutor = Executors.newFixedThreadPool(Constants.TASK_WORKERS*2);
+
         List<Future<SentChunk>> promisedChunks = new ArrayList<>();
         for (SentChunk chunk : this.sentChunks) {
-            promisedChunks.add(this.peer.getSenderExecutor().submit(new RestoreChunk(peer, chunk)));
+            promisedChunks.add(receiverExecutor.submit(new RestoreChunk(peer, chunk)));
         }
 
         for (Future<SentChunk> promised : promisedChunks) {
