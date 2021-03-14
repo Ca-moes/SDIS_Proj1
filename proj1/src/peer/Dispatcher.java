@@ -1,6 +1,7 @@
 package peer;
 
 import messages.Message;
+import messages.PutchunkMessage;
 
 public class Dispatcher implements Runnable {
     private final byte[] packet;
@@ -19,7 +20,11 @@ public class Dispatcher implements Runnable {
             Message m = Message.fromDatagramPacket(packet, packetLength);
             // if isOwner we discard the message
             if (!m.isOwner(this.peer.getPeerId())) {
-                m.createTask(peer).start();
+                if (m instanceof PutchunkMessage) {
+                    new Thread(() -> m.createTask(peer).start()).start();
+                } else {
+                    m.createTask(peer).start();
+                }
             }
         } catch (Exception e) {
             e.printStackTrace();
