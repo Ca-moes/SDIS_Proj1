@@ -9,6 +9,15 @@ public abstract class Chunk implements Serializable {
     protected int replicationDegree;
     protected final HashSet<Integer> peers;
     protected transient byte[] body;
+    protected boolean receivedPutchunk = false;
+
+    public boolean receivedPutchunk() {
+        return receivedPutchunk;
+    }
+
+    public void setReceivedPutchunk(boolean receivedPutchunk) {
+        this.receivedPutchunk = receivedPutchunk;
+    }
 
     public Chunk(String fileId, int chunkNo) {
         this.fileId = fileId;

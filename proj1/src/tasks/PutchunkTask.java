@@ -19,14 +19,21 @@ public class PutchunkTask extends Task {
 
         if (this.peer.getInternalState().getSavedChunksMap().containsKey(chunk.getChunkId())) {
             // This peer has this chunk but it will send a reply anyways cause it indicates that it has saved the chunk (UDP unreliability)
+            chunk.setReceivedPutchunk(true);
             sleep();
             peer.getMulticastControl().sendMessage(reply);
-        } else {
+        } else if (!this.peer.getInternalState().getSentChunksMap().containsKey(chunk.getChunkId())) {
+            if (chunk.getBody().length + this.peer.getInternalState().getPeerOccupation() > this.peer.getInternalState().getCapacity()) {
+                // I dont have the storage needed to backup that, i'm afraid
+                System.out.printf("[PEER] Not enough space for %s\n", chunk.getChunkId());
+                return;
+            }
             peer.getInternalState().getSavedChunksMap().put(chunk.getChunkId(), chunk);
 
             sleep();
 
-            if (chunk.getPeers().size() < chunk.getReplicationDegree()) {
+            if (chunk.getPeers().size() < chunk.getReplicationDegree() &&
+                    chunk.getBody().length + this.peer.getInternalState().getPeerOccupation() < this.peer.getInternalState().getCapacity()) {
                 // This peer will save the chunk locally
                 peer.getMulticastControl().sendMessage(reply);
                 peer.getInternalState().storeChunk(chunk);
@@ -35,6 +42,8 @@ public class PutchunkTask extends Task {
                 // no need to backup here as it is already being backed up and it wont reply with STORED
                 peer.getInternalState().getSavedChunksMap().remove(chunk.getChunkId());
             }
+
+            chunk.setReceivedPutchunk(false);
         }
     }
 }

@@ -1,5 +1,7 @@
 package tasks;
 
+import files.Chunk;
+import files.SavedChunk;
 import files.SentChunk;
 import messages.Message;
 import peer.Peer;
@@ -7,17 +9,23 @@ import peer.Peer;
 public class BackupChunk implements Runnable {
     private final Message message;
     private final Peer peer;
+    private final boolean local;
 
-    public BackupChunk(Message message, Peer peer) {
+    public BackupChunk(Message message, Peer peer, boolean local) {
         this.message = message;
         this.peer = peer;
+        this.local = local;
     }
 
     @Override
     public void run() {
-        SentChunk chunk = new SentChunk(message.getFileId(), message.getChunkNo(), message.getReplicationDegree());
-
-        this.peer.getInternalState().getSentChunksMap().put(chunk.getChunkId(), chunk);
+        Chunk chunk;
+        if (!local) {
+            chunk = this.peer.getInternalState().getSavedChunksMap().get(message.getFileId() + "_" + message.getChunkNo());
+        } else {
+            chunk = new SentChunk(message.getFileId(), message.getChunkNo(), message.getReplicationDegree());
+            this.peer.getInternalState().getSentChunksMap().put(chunk.getChunkId(), (SentChunk) chunk);
+        }
 
         int timeout = 1000;
         while (timeout <= 32000) {

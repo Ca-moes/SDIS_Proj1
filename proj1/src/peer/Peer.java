@@ -159,7 +159,7 @@ public class Peer implements InitiatorPeer {
                         buffer
                 );
                 size = buffer.length;
-                this.senderExecutor.submit(new BackupChunk(message, this));
+                this.senderExecutor.submit(new BackupChunk(message, this, true));
                 System.out.printf("[%s] SENDING CHUNK: %d of %d\n", pathname, i+1, numberOfChunks);
                 i++;
             }
@@ -173,7 +173,7 @@ public class Peer implements InitiatorPeer {
                         replicationDegree,
                         new byte[0]
                 );
-                this.senderExecutor.submit(new BackupChunk(message, this));
+                this.senderExecutor.submit(new BackupChunk(message, this, true));
                 System.out.printf("[%s] SENDING CHUNK: %d of %d\n", pathname, i+1, numberOfChunks);
             }
         } catch (IOException e) {
