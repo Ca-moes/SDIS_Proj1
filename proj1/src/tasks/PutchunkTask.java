@@ -32,12 +32,16 @@ public class PutchunkTask extends Task {
 
             sleep();
 
-            if (chunk.getPeers().size() < chunk.getReplicationDegree() &&
-                    chunk.getBody().length + this.peer.getInternalState().getPeerOccupation() < this.peer.getInternalState().getCapacity()) {
-                // This peer will save the chunk locally
-                peer.getMulticastControl().sendMessage(reply);
-                peer.getInternalState().storeChunk(chunk);
-                peer.getInternalState().commit();
+            if (chunk.getPeers().size() < chunk.getReplicationDegree()) {
+                if (chunk.getBody().length + this.peer.getInternalState().getPeerOccupation() < this.peer.getInternalState().getCapacity()) {
+                    // This peer will save the chunk locally
+                    peer.getMulticastControl().sendMessage(reply);
+                    peer.getInternalState().storeChunk(chunk);
+                    peer.getInternalState().commit();
+                } else {
+                    System.out.printf("[PEER] Not enough space for %s\n", chunk.getChunkId());
+                    return;
+                }
             } else {
                 // no need to backup here as it is already being backed up and it wont reply with STORED
                 peer.getInternalState().getSavedChunksMap().remove(chunk.getChunkId());

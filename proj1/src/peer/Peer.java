@@ -283,7 +283,7 @@ public class Peer implements InitiatorPeer {
     }
 
     @Override
-    public void state() throws RemoteException {
-        System.out.println(this.internalState);
+    public String state() throws RemoteException {
+        return this.internalState.toString();
     }
 }

@@ -3,6 +3,8 @@ package peer;
 import files.Chunk;
 import files.SavedChunk;
 import files.SentChunk;
+import messages.Message;
+import messages.RemovedMessage;
 
 import java.io.*;
 import java.nio.file.Files;
@@ -206,6 +208,27 @@ public class PeerInternalState implements Serializable {
             } catch (IOException e) {
                 e.printStackTrace();
             }
+        }
+    }
+
+    public void freeSpace() {
+        System.out.println("[PIS] Trying to free some space...");
+
+        ArrayList<SavedChunk> safeDeletions = new ArrayList<>();
+        for (String chunkId : this.getSavedChunksMap().keySet()) {
+            SavedChunk chunk = this.getSavedChunksMap().get(chunkId);
+            if (chunk.getPeers().size() > chunk.getReplicationDegree())
+                safeDeletions.add(chunk);
+        }
+
+        while (!safeDeletions.isEmpty()) {
+            SavedChunk chunk = safeDeletions.remove(0);
+            Message message = new RemovedMessage(this.peer.getProtocolVersion(), this.peer.getPeerId(), chunk.getFileId(), chunk.getChunkNo());
+            this.peer.getMulticastControl().sendMessage(message);
+
+            System.out.printf("[PEER] Safe deleting %s\n", chunk.getChunkId());
+            this.deleteChunk(chunk);
+            this.getSavedChunksMap().remove(chunk.getChunkId());
         }
     }
 
