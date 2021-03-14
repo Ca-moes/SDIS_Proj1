@@ -12,6 +12,6 @@ public class StateOperation extends Operation {
     @Override
     public void start() throws RemoteException {
         System.out.println("Started a State Operation");
-        this.stub.state();
+        System.out.println(this.stub.state());
     }
 }

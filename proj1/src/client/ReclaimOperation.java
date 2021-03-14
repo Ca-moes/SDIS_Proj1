@@ -5,9 +5,9 @@ import peer.InitiatorPeer;
 import java.rmi.RemoteException;
 
 public class ReclaimOperation extends Operation {
-    private final int maxDiskSpace;
+    private final long maxDiskSpace;
 
-    public ReclaimOperation(InitiatorPeer stub, int maxDiskSpace) {
+    public ReclaimOperation(InitiatorPeer stub, long maxDiskSpace) {
         super(stub);
         this.maxDiskSpace = maxDiskSpace;
     }

@@ -3,9 +3,10 @@ package peer;
 import files.Chunk;
 import files.SavedChunk;
 import files.SentChunk;
+import messages.Message;
+import messages.RemovedMessage;
 
 import java.io.*;
-import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -21,13 +22,9 @@ public class PeerInternalState implements Serializable {
     private final HashSet<String> deletedFiles;
 
     private static transient String PEER_DIRECTORY = "peer%d";
-
-    public String getPeerDirectory() {
-        return PEER_DIRECTORY;
-    }
-
     private static transient String DB_FILENAME = "peer%d/data.ser";
     private static transient String CHUNK_PATH = "%s/%s/%d";
+    private long capacity = Constants.DEFAULT_CAPACITY;
 
     private final transient Peer peer;
 
@@ -159,6 +156,10 @@ public class PeerInternalState implements Serializable {
         for (String fileId : this.deletedFiles) {
             out.append(fileId).append("\n");
         }
+
+        out.append("CAPACITY: ").append(this.capacity / 1000.0).append("KB\n");
+        out.append("OCCUPIED SPACE: ").append(this.directorySize(new File(PEER_DIRECTORY)) / 1000.0).append("KB\n");
+
         return out.toString();
     }
 
@@ -208,5 +209,54 @@ public class PeerInternalState implements Serializable {
                 e.printStackTrace();
             }
         }
+    }
+
+    public void freeSpace() {
+        System.out.println("[PIS] Trying to free some space...");
+
+        ArrayList<SavedChunk> safeDeletions = new ArrayList<>();
+        for (String chunkId : this.getSavedChunksMap().keySet()) {
+            SavedChunk chunk = this.getSavedChunksMap().get(chunkId);
+            if (chunk.getPeers().size() > chunk.getReplicationDegree())
+                safeDeletions.add(chunk);
+        }
+
+        while (!safeDeletions.isEmpty()) {
+            SavedChunk chunk = safeDeletions.remove(0);
+            Message message = new RemovedMessage(this.peer.getProtocolVersion(), this.peer.getPeerId(), chunk.getFileId(), chunk.getChunkNo());
+            this.peer.getMulticastControl().sendMessage(message);
+
+            System.out.printf("[PEER] Safe deleting %s\n", chunk.getChunkId());
+            this.deleteChunk(chunk);
+            this.getSavedChunksMap().remove(chunk.getChunkId());
+        }
+    }
+
+    public long getPeerOccupation() {
+        return directorySize(new File(PEER_DIRECTORY));
+    }
+
+    public void setCapacity(long capacity) {
+        this.capacity = capacity;
+    }
+
+    public long getCapacity() {
+        return capacity;
+    }
+
+    public String getPeerDirectory() {
+        return PEER_DIRECTORY;
+    }
+
+    public long directorySize(File dir) {
+        long size = 0;
+
+        File[] files = dir.listFiles();
+        if (files != null) {
+            for (File file : files) {
+                size += (file.isFile()) ? file.length() : directorySize(file);
+            }
+        }
+        return size;
     }
 }
