@@ -20,7 +20,7 @@ public abstract class Operation {
             case "DELETE":
                 return new DeleteOperation(stub, args[2]);
             case "RECLAIM":
-                return new ReclaimOperation(stub, Integer.parseInt(args[2]));
+                return new ReclaimOperation(stub, Long.parseLong(args[2]));
             case "STATE":
                 return new StateOperation(stub);
             default:

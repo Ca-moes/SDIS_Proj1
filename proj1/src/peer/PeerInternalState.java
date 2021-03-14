@@ -5,7 +5,6 @@ import files.SavedChunk;
 import files.SentChunk;
 
 import java.io.*;
-import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -21,13 +20,9 @@ public class PeerInternalState implements Serializable {
     private final HashSet<String> deletedFiles;
 
     private static transient String PEER_DIRECTORY = "peer%d";
-
-    public String getPeerDirectory() {
-        return PEER_DIRECTORY;
-    }
-
     private static transient String DB_FILENAME = "peer%d/data.ser";
     private static transient String CHUNK_PATH = "%s/%s/%d";
+    private long capacity = Constants.DEFAULT_CAPACITY;
 
     private final transient Peer peer;
 
@@ -159,6 +154,10 @@ public class PeerInternalState implements Serializable {
         for (String fileId : this.deletedFiles) {
             out.append(fileId).append("\n");
         }
+
+        out.append("CAPACITY: ").append(this.capacity / 1000.0).append("KB\n");
+        out.append("OCCUPIED SPACE: ").append(this.directorySize(new File(PEER_DIRECTORY)) / 1000.0).append("KB\n");
+
         return out.toString();
     }
 
@@ -208,5 +207,33 @@ public class PeerInternalState implements Serializable {
                 e.printStackTrace();
             }
         }
+    }
+
+    public long getPeerOccupation() {
+        return directorySize(new File(PEER_DIRECTORY));
+    }
+
+    public void setCapacity(long capacity) {
+        this.capacity = capacity;
+    }
+
+    public long getCapacity() {
+        return capacity;
+    }
+
+    public String getPeerDirectory() {
+        return PEER_DIRECTORY;
+    }
+
+    public long directorySize(File dir) {
+        long size = 0;
+
+        File[] files = dir.listFiles();
+        if (files != null) {
+            for (File file : files) {
+                size += (file.isFile()) ? file.length() : directorySize(file);
+            }
+        }
+        return size;
     }
 }

@@ -1,12 +1,7 @@
 package peer;
 
-import files.FutureFile;
-import files.IOUtils;
-import files.BackedUpFile;
-import messages.DeleteMessage;
-import messages.Message;
-import messages.MulticastService;
-import messages.PutchunkMessage;
+import files.*;
+import messages.*;
 import tasks.BackupChunk;
 
 import java.io.IOException;
@@ -15,6 +10,7 @@ import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
+import java.util.Comparator;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.regex.Matcher;
@@ -224,8 +220,40 @@ public class Peer implements InitiatorPeer {
     }
 
     @Override
-    public void reclaim(int maxDiskSpace) throws RemoteException {
-        System.out.println("RECLAIM PROTOCOL - Not yet implemented");
+    public void reclaim(long maxDiskSpace) throws RemoteException {
+        System.out.println("[CLIENT] RECLAIM PROTOCOL");
+        System.out.printf("[CLIENT] Reclaiming %d KB of storage - ('0' means all space)\n", maxDiskSpace);
+
+        if (maxDiskSpace == 0) {
+            System.out.println("[PEER] Removing all chunks");
+            // delete every chunk and reset capacity
+            for (String chunkId : this.internalState.getSavedChunksMap().keySet()) {
+                SavedChunk chunk = this.internalState.getSavedChunksMap().get(chunkId);
+                Message message = new RemovedMessage(this.protocolVersion, this.peerId, chunk.getFileId(), chunk.getChunkNo());
+                this.multicastControl.sendMessage(message);
+
+                this.internalState.deleteChunk(chunk);
+                this.internalState.getSavedChunksMap().remove(chunkId);
+            }
+            this.internalState.commit();
+            this.internalState.setCapacity(Constants.DEFAULT_CAPACITY);
+            return;
+        }
+
+        if (this.internalState.getPeerOccupation() > maxDiskSpace) {
+            for (String chunkId : this.internalState.getSavedChunksMap().keySet()) {
+                SavedChunk chunk = this.internalState.getSavedChunksMap().get(chunkId);
+                if (chunk.getPeers().size() > chunk.getReplicationDegree()) {
+                    System.out.printf("[PEER] Can safely delete %s\n", chunkId);
+                    Message message = new RemovedMessage(this.protocolVersion, this.peerId, chunk.getFileId(), chunk.getChunkNo());
+                    this.multicastControl.sendMessage(message);
+
+                    this.internalState.deleteChunk(chunk);
+                    this.internalState.getSavedChunksMap().remove(chunkId);
+                    this.internalState.commit();
+                }
+            }
+        }
     }
 
     @Override

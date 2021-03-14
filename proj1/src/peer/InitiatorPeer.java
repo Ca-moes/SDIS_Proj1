@@ -10,7 +10,7 @@ public interface InitiatorPeer extends Remote {
 
     void delete(String pathname) throws RemoteException;
 
-    void reclaim(int maxDiskSpace) throws RemoteException;
+    void reclaim(long maxDiskSpace) throws RemoteException;
 
     void state() throws RemoteException;
 }
