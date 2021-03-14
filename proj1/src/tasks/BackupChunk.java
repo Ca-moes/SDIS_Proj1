@@ -1,7 +1,6 @@
 package tasks;
 
 import files.Chunk;
-import files.SavedChunk;
 import files.SentChunk;
 import messages.Message;
 import peer.Peer;

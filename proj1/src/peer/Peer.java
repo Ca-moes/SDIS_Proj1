@@ -1,6 +1,9 @@
 package peer;
 
-import files.*;
+import files.BackedUpFile;
+import files.FutureFile;
+import files.IOUtils;
+import files.SavedChunk;
 import messages.*;
 import tasks.BackupChunk;
 
@@ -11,9 +14,6 @@ import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Comparator;
-import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.regex.Matcher;
