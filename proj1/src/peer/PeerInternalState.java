@@ -7,9 +7,9 @@ import messages.Message;
 import messages.RemovedMessage;
 
 import java.io.*;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.nio.ByteBuffer;
+import java.nio.channels.AsynchronousFileChannel;
+import java.nio.file.*;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -92,7 +92,6 @@ public class PeerInternalState implements Serializable {
         } catch (IOException i) {
             i.printStackTrace();
         }
-//        System.out.println("[PIS] - Saved Database: " + this);
     }
 
     public void storeChunk(SavedChunk chunk) {
@@ -102,9 +101,9 @@ public class PeerInternalState implements Serializable {
             Path path = Paths.get(chunkPathName);
             Files.createDirectories(path.getParent());
 
-            FileOutputStream fos = new FileOutputStream(chunkPathName);
-            fos.write(chunk.getBody());
-            fos.close();
+            AsynchronousFileChannel channel = AsynchronousFileChannel.open(path, StandardOpenOption.CREATE, StandardOpenOption.READ, StandardOpenOption.WRITE);
+            channel.write(ByteBuffer.wrap(chunk.getBody()), 0);
+            channel.close();
 
             chunk.clearBody();
 
@@ -204,7 +203,10 @@ public class PeerInternalState implements Serializable {
             String filepath = String.format(CHUNK_PATH, PEER_DIRECTORY, chunk.getFileId(), chunk.getChunkNo());
             File file = new File(filepath);
             try {
-                chunk.setBody(Files.readAllBytes(file.toPath()));
+                AsynchronousFileChannel channel = AsynchronousFileChannel.open(file.toPath(), StandardOpenOption.READ);
+                ByteBuffer buffer = ByteBuffer.allocate(64000);
+                channel.read(buffer, 0);
+                chunk.setBody(buffer.array());
             } catch (IOException e) {
                 e.printStackTrace();
             }
