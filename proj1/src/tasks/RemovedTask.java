@@ -13,7 +13,7 @@ public class RemovedTask extends Task {
 
     @Override
     public void start() {
-        System.out.println("[PEER] Received a REMOVED message");
+        // System.out.println("[PEER] Received a REMOVED message");
 
         Chunk chunk = null;
 

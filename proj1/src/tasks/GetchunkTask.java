@@ -50,6 +50,6 @@ public class GetchunkTask extends Task {
         // no need to keep the body in memory
         chunk.clearBody();
         chunk.setBeingHandled(false);
-        System.out.println("[GETCHUNK] Sent a chunk!");
+        // System.out.println("[GETCHUNK] Sent a chunk!");
     }
 }
