@@ -109,9 +109,9 @@ public class PeerInternalState implements Serializable {
             Path path = Paths.get(chunkPathName);
             Files.createDirectories(path.getParent());
 
-            AsynchronousFileChannel channel = AsynchronousFileChannel.open(path, StandardOpenOption.CREATE, StandardOpenOption.READ, StandardOpenOption.WRITE);
-            channel.write(ByteBuffer.wrap(chunk.getBody()), 0);
-            channel.close();
+            FileOutputStream fos = new FileOutputStream(chunkPathName);
+            fos.write(chunk.getBody());
+            fos.close();
 
             chunk.clearBody();
 
@@ -121,6 +121,7 @@ public class PeerInternalState implements Serializable {
             System.out.println("[PIS] - Couldn't Save chunk " + chunk.getChunkId() + " on this peer");
             i.printStackTrace();
         }
+
     }
 
     public synchronized void updateStoredConfirmation(SentChunk chunk, int replier) {
@@ -213,10 +214,7 @@ public class PeerInternalState implements Serializable {
             String filepath = String.format(CHUNK_PATH, PEER_DIRECTORY, chunk.getFileId(), chunk.getChunkNo());
             File file = new File(filepath);
             try {
-                AsynchronousFileChannel channel = AsynchronousFileChannel.open(file.toPath(), StandardOpenOption.READ);
-                ByteBuffer buffer = ByteBuffer.allocate(64000);
-                channel.read(buffer, 0);
-                chunk.setBody(buffer.array());
+                chunk.setBody(Files.readAllBytes(file.toPath()));
             } catch (IOException e) {
                 e.printStackTrace();
             }
