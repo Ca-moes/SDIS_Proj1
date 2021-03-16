@@ -117,7 +117,6 @@ public class PeerInternalState implements Serializable {
 
             chunk.clearBody();
 
-            chunk.getPeers().add(peer.getPeerId());
             updateOccupation();
         } catch (IOException i) {
             System.out.println("[PIS] - Couldn't Save chunk " + chunk.getChunkId() + " on this peer");
@@ -160,8 +159,13 @@ public class PeerInternalState implements Serializable {
             out.append(this.savedChunksMap.get(chunkId));
         }
         out.append("\nSENT CHUNKS MAP");
+
+        double numberOfExceeded = 0;
+
         for (String chunkId : this.sentChunksMap.keySet()) {
             out.append(this.sentChunksMap.get(chunkId));
+            if (this.sentChunksMap.get(chunkId).getPeers().size() > this.sentChunksMap.get(chunkId).getReplicationDegree())
+                numberOfExceeded += 1;
         }
         out.append("\nDELETED FILES HASHMAP\n");
         for (String fileId : this.deletedFiles) {
@@ -170,6 +174,7 @@ public class PeerInternalState implements Serializable {
 
         out.append("CAPACITY: ").append(this.capacity / 1000.0).append("KB\n");
         out.append("OCCUPIED SPACE: ").append(this.directorySize(new File(PEER_DIRECTORY)) / 1000.0).append("KB\n");
+        out.append("Exceeded Rate: ").append(numberOfExceeded / this.sentChunksMap.size()).append("\n");
 
         return out.toString();
     }

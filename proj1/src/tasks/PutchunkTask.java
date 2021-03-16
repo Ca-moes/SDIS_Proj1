@@ -34,6 +34,7 @@ public class PutchunkTask extends Task {
                 return;
             }
             peer.getInternalState().getSavedChunksMap().put(chunk.getChunkId(), chunk);
+            chunk.getPeers().add(peer.getPeerId());
 
             sleep();
 
