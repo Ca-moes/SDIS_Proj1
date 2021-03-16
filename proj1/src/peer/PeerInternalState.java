@@ -7,11 +7,11 @@ import messages.Message;
 import messages.RemovedMessage;
 
 import java.io.*;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.nio.file.*;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class PeerInternalState implements Serializable {
     // chunkId -> sent chunk
@@ -266,6 +266,7 @@ public class PeerInternalState implements Serializable {
         if (acceptingRequests) {
             System.out.println("[PIS] Peer is now accepting PUTCHUNKS");
             timer.cancel();
+            timerTask1.cancel();
         } else {
             System.out.println("[PIS] Peer is not accepting requests as of this moment, it will be available in 2 minutes");
             TimerTask timerTask = new TimerTask() {
@@ -303,8 +304,44 @@ public class PeerInternalState implements Serializable {
         return PEER_DIRECTORY;
     }
 
+    public static long size(Path path) {
+        final AtomicLong size = new AtomicLong(0);
+
+        try {
+            Files.walkFileTree(path, new SimpleFileVisitor<Path>() {
+                @Override
+                public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
+
+                    size.addAndGet(attrs.size());
+                    return FileVisitResult.CONTINUE;
+                }
+
+                @Override
+                public FileVisitResult visitFileFailed(Path file, IOException exc) {
+
+                    System.out.println("skipped: " + file + " (" + exc + ")");
+                    // Skip folders that can't be traversed
+                    return FileVisitResult.CONTINUE;
+                }
+
+                @Override
+                public FileVisitResult postVisitDirectory(Path dir, IOException exc) {
+
+                    if (exc != null)
+                        System.out.println("had trouble traversing: " + dir + " (" + exc + ")");
+                    // Ignore errors traversing a folder
+                    return FileVisitResult.CONTINUE;
+                }
+            });
+        } catch (IOException e) {
+            throw new AssertionError("walkFileTree will not throw IOException if the FileVisitor does not");
+        }
+
+        return size.get();
+    }
+
     public long directorySize(File dir) {
-        long size = 0;
+        /*long size = 0;
 
         File[] files = dir.listFiles();
         if (files != null) {
@@ -312,6 +349,7 @@ public class PeerInternalState implements Serializable {
                 size += (file.isFile()) ? file.length() : directorySize(file);
             }
         }
-        return size;
+        return size;*/
+        return size(dir.toPath());
     }
 }
