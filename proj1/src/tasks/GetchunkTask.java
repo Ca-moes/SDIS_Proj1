@@ -12,7 +12,7 @@ public class GetchunkTask extends Task {
     }
 
     @Override
-    public void start() {
+    public void run() {
         if (!this.peer.getInternalState().getSavedChunksMap().containsKey(message.getFileId() + "_" + message.getChunkNo())) {
             // System.out.printf("[GETCHUNK] I dont have that chunk! %s\n", message.getFileId() + "_" + message.getChunkNo());
             return;

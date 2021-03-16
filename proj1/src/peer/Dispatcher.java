@@ -1,7 +1,8 @@
 package peer;
 
 import messages.Message;
-import messages.PutchunkMessage;
+
+import java.util.concurrent.ExecutorService;
 
 public class Dispatcher implements Runnable {
     private final byte[] packet;
@@ -20,11 +21,9 @@ public class Dispatcher implements Runnable {
             Message m = Message.fromDatagramPacket(packet, packetLength);
             // if isOwner we discard the message
             if (!m.isOwner(this.peer.getPeerId())) {
-                if (m instanceof PutchunkMessage) {
-                    new Thread(() -> m.createTask(peer).start()).start();
-                } else {
-                    m.createTask(peer).start();
-                }
+                // get the correspondent worker to do the job
+                ExecutorService worker = m.getWorker(this.peer);
+                worker.submit(m.createTask(peer));
             }
         } catch (Exception e) {
             e.printStackTrace();

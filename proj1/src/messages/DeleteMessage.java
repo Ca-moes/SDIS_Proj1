@@ -5,6 +5,7 @@ import tasks.DeleteTask;
 import tasks.Task;
 
 import java.nio.charset.StandardCharsets;
+import java.util.concurrent.ExecutorService;
 
 public class DeleteMessage extends Message {
     public DeleteMessage(String protocolVersion, int senderId, String fileId) {
@@ -23,5 +24,10 @@ public class DeleteMessage extends Message {
     @Override
     public Task createTask(Peer peer) {
         return new DeleteTask(this, peer);
+    }
+
+    @Override
+    public ExecutorService getWorker(Peer peer) {
+        return peer.getRequestsExecutor();
     }
 }

@@ -9,7 +9,7 @@ public class ChunkTask extends Task {
     }
 
     @Override
-    public void start() {
+    public void run() {
         if (this.peer.getInternalState().getSavedChunksMap().containsKey(message.getFileId() + "_" + message.getChunkNo())) {
             // this chunk is stored here, so it will be marked as "already provided by another peer"
             this.peer.getInternalState().getSavedChunksMap().get(message.getFileId() + "_" + message.getChunkNo()).setAlreadyProvided(true);

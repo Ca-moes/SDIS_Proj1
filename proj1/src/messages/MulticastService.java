@@ -45,7 +45,8 @@ public class MulticastService extends MulticastSocket implements Runnable {
             DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
             try {
                 this.receive(packet);
-                peer.getTaskExecutor().submit(new Dispatcher(Arrays.copyOf(buffer, buffer.length), peer, packet.getLength()));
+                // send the message to triage so it can be sent to an appropriate worker then
+                peer.getTriageExecutor().submit(new Dispatcher(Arrays.copyOf(buffer, buffer.length), peer, packet.getLength()));
             } catch (Exception e) {
                 e.printStackTrace();
             }

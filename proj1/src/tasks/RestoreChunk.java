@@ -19,7 +19,6 @@ public class RestoreChunk implements Callable<SentChunk> {
         chunk.clearBody();
     }
 
-
     @Override
     public SentChunk call() throws Exception {
         Message message = new GetchunkMessage(this.peer.getProtocolVersion(), this.peer.getPeerId(), this.chunk.getFileId(), this.chunk.getChunkNo());

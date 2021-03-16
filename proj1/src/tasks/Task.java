@@ -5,7 +5,7 @@ import peer.Peer;
 
 import java.util.concurrent.ThreadLocalRandom;
 
-public abstract class Task {
+public abstract class Task implements Runnable {
     protected final Message message;
     protected final Peer peer;
 
@@ -14,11 +14,9 @@ public abstract class Task {
         this.peer = peer;
     }
 
-    abstract public void start();
-
     protected void sleep() {
         try {
-            double lowerBound = Math.sin((double) peer.getInternalState().getPeerOccupation() / peer.getInternalState().getCapacity() * 1.5) * 400;
+            double lowerBound = Math.sin((double) peer.getInternalState().calculateOccupation() / peer.getInternalState().getCapacity() * 1.5) * 400;
             //System.out.printf("OCU: %d\nCAP: %d\n", peer.getInternalState().getPeerOccupation(), peer.getInternalState().getCapacity());
             enhancedSleep((int) lowerBound);
         } catch (InterruptedException e) {

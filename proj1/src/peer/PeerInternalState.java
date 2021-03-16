@@ -25,6 +25,7 @@ public class PeerInternalState implements Serializable {
     private static transient String DB_FILENAME = "peer%d/data.ser";
     private static transient String CHUNK_PATH = "%s/%s/%d";
     private long capacity = Constants.DEFAULT_CAPACITY;
+    private long occupation;
 
     private final transient Peer peer;
 
@@ -32,7 +33,7 @@ public class PeerInternalState implements Serializable {
         this.sentChunksMap = new ConcurrentHashMap<>();
         this.savedChunksMap = new ConcurrentHashMap<>();
         this.backedUpFilesMap = new ConcurrentHashMap<>();
-        this.deletedFiles = ConcurrentHashMap.newKeySet();;
+        this.deletedFiles = ConcurrentHashMap.newKeySet();
         this.peer = peer;
     }
 
@@ -78,6 +79,7 @@ public class PeerInternalState implements Serializable {
             e.printStackTrace();
             return;
         }
+        this.updateOccupation();
         System.out.println("[PIS] - Database Loaded/Created Successfully");
     }
 
@@ -92,6 +94,12 @@ public class PeerInternalState implements Serializable {
         } catch (IOException i) {
             i.printStackTrace();
         }
+
+        this.updateOccupation();
+    }
+
+    private void updateOccupation() {
+        this.occupation = this.getOccupation();
     }
 
     public void storeChunk(SavedChunk chunk) {
@@ -108,6 +116,7 @@ public class PeerInternalState implements Serializable {
             chunk.clearBody();
 
             chunk.getPeers().add(peer.getPeerId());
+            updateOccupation();
         } catch (IOException i) {
             System.out.println("[PIS] - Couldn't Save chunk " + chunk.getChunkId() + " on this peer");
             i.printStackTrace();
@@ -169,6 +178,7 @@ public class PeerInternalState implements Serializable {
         file.delete();
 
         this.deleteEmptyFolders();
+        this.updateOccupation();
     }
 
     private void deleteEmptyFolders() {
@@ -234,12 +244,16 @@ public class PeerInternalState implements Serializable {
         }
     }
 
-    public long getPeerOccupation() {
+    public long calculateOccupation() {
         return directorySize(new File(PEER_DIRECTORY));
     }
 
     public void setCapacity(long capacity) {
         this.capacity = capacity;
+    }
+
+    public long getOccupation() {
+        return occupation;
     }
 
     public long getCapacity() {

@@ -12,7 +12,7 @@ public class PutchunkTask extends Task {
     }
 
     @Override
-    public void start() {
+    public void run() {
         SavedChunk chunk = new SavedChunk(message.getFileId(), message.getChunkNo(), message.getReplicationDegree(), message.getBody());
 
         Message reply = new StoredMessage(peer.getProtocolVersion(), peer.getPeerId(), message.getFileId(), message.getChunkNo());
@@ -23,7 +23,7 @@ public class PutchunkTask extends Task {
             sleep();
             peer.getMulticastControl().sendMessage(reply);
         } else if (!this.peer.getInternalState().getSentChunksMap().containsKey(chunk.getChunkId())) {
-            if (chunk.getBody().length + this.peer.getInternalState().getPeerOccupation() > this.peer.getInternalState().getCapacity()) {
+            if (chunk.getBody().length + this.peer.getInternalState().getOccupation() > this.peer.getInternalState().getCapacity()) {
                 // I dont have the storage needed to backup that, i'm afraid
                 System.out.printf("[PEER] Not enough space for %s\n", chunk.getChunkId());
                 return;
@@ -33,7 +33,7 @@ public class PutchunkTask extends Task {
             sleep();
 
             if (chunk.getPeers().size() < chunk.getReplicationDegree()) {
-                if (chunk.getBody().length + this.peer.getInternalState().getPeerOccupation() < this.peer.getInternalState().getCapacity()) {
+                if (chunk.getBody().length + this.peer.getInternalState().getOccupation() < this.peer.getInternalState().getCapacity()) {
                     // This peer will save the chunk locally
                     peer.getMulticastControl().sendMessage(reply);
                     peer.getInternalState().storeChunk(chunk);

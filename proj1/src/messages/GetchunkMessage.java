@@ -5,6 +5,7 @@ import tasks.GetchunkTask;
 import tasks.Task;
 
 import java.nio.charset.StandardCharsets;
+import java.util.concurrent.ExecutorService;
 
 public class GetchunkMessage extends Message {
     public GetchunkMessage(String protocolVersion, int senderId, String fileId, int chunkNo) {
@@ -24,5 +25,10 @@ public class GetchunkMessage extends Message {
                 this.senderId,
                 this.fileId,
                 this.chunkNo).getBytes(StandardCharsets.UTF_8);
+    }
+
+    @Override
+    public ExecutorService getWorker(Peer peer) {
+        return peer.getAcknowledgmentsExecutor();
     }
 }

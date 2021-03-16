@@ -7,6 +7,7 @@ import java.net.DatagramPacket;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Objects;
+import java.util.concurrent.ExecutorService;
 
 public abstract class Message {
     protected final String protocolVersion;
@@ -117,6 +118,8 @@ public abstract class Message {
                 /*", body=" + Arrays.toString(body) +*/
                 '}';
     }
+
+    abstract public ExecutorService getWorker(Peer peer);
 
     abstract public Task createTask(Peer peer);
 

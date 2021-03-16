@@ -55,11 +55,9 @@ public class FutureFile {
         System.out.printf("Number of chunks: %d\n", this.numChunks);
         System.out.println("--------------------------------------------------------------------------");
 
-        ExecutorService receiverExecutor = Executors.newFixedThreadPool(Constants.TASK_WORKERS*2);
-
         List<Future<SentChunk>> promisedChunks = new ArrayList<>();
         for (SentChunk chunk : this.sentChunks) {
-            promisedChunks.add(receiverExecutor.submit(new RestoreChunk(peer, chunk)));
+            promisedChunks.add(this.peer.getIOExecutor().submit(new RestoreChunk(peer, chunk)));
         }
 
         for (Future<SentChunk> promised : promisedChunks) {

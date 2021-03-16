@@ -11,7 +11,7 @@ public class StoredTask extends Task {
     }
 
     @Override
-    public void start() {
+    public void run() {
         SentChunk sentChunk = new SentChunk(message.getFileId(), message.getChunkNo());
         SavedChunk savedChunk = new SavedChunk(message.getFileId(), message.getChunkNo());
 
