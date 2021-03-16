@@ -229,6 +229,7 @@ public class Peer implements InitiatorPeer {
         System.out.printf("[CLIENT] Reclaiming %d KB of storage - ('0' means all space)\n", maxDiskSpace);
 
         if (maxDiskSpace == 0) {
+            this.internalState.interruptPutchunks();
             this.internalState.setCapacity(0);
             System.out.println("[PEER] Removing all chunks");
             // delete every chunk and reset capacity
@@ -255,12 +256,13 @@ public class Peer implements InitiatorPeer {
         }
 
         this.internalState.setCapacity(maxDiskSpace*1000);
-        while (this.internalState.calculateOccupation() > this.internalState.getCapacity() && !this.internalState.getSavedChunksMap().isEmpty()) {
+        this.internalState.interruptPutchunks();
+        while (this.internalState.getOccupation() > this.internalState.getCapacity() && !this.internalState.getSavedChunksMap().isEmpty()) {
             // first remove the chunks with higher perceived replication degree than the required rep. degree
             while (this.internalState.calculateOccupation() > this.internalState.getCapacity() && !safeDeletions.isEmpty()) {
                 SavedChunk chunk = safeDeletions.remove(0);
 
-                System.out.printf("[PEER] Safe deleting %s\n", chunk.getChunkId());
+                // System.out.printf("[PEER] Safe deleting %s\n", chunk.getChunkId());
                 this.internalState.deleteChunk(chunk);
                 this.internalState.getSavedChunksMap().remove(chunk.getChunkId());
 
@@ -269,17 +271,17 @@ public class Peer implements InitiatorPeer {
             }
             System.out.printf("[PEER] Space Occupied after safe deleting: %d\n", this.internalState.calculateOccupation());
             // if it got here, then it means removing the safe chunks was not enough, so it needs to proceed removing other chunks
-            while (this.internalState.calculateOccupation() > this.internalState.getCapacity() && !unsafeDeletions.isEmpty()) {
+            while (this.internalState.getOccupation() > this.internalState.getCapacity() && !unsafeDeletions.isEmpty()) {
                 SavedChunk chunk = unsafeDeletions.remove(0);
 
-                System.out.printf("[PEER] Unsafe deleting %s\n", chunk.getChunkId());
+                // System.out.printf("[PEER] Unsafe deleting %s\n", chunk.getChunkId());
                 this.internalState.deleteChunk(chunk);
                 this.internalState.getSavedChunksMap().remove(chunk.getChunkId());
 
                 Message message = new RemovedMessage(this.protocolVersion, this.peerId, chunk.getFileId(), chunk.getChunkNo());
                 this.multicastControl.sendMessage(message);
             }
-            System.out.printf("[PEER] Occupation after unsafe deleting: %d\n", this.internalState.calculateOccupation());
+            System.out.printf("[PEER] Occupation after unsafe deleting: %d\n", this.internalState.getOccupation());
         }
         // time to commit to the database to register the changes made
         this.internalState.commit();

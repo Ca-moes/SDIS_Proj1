@@ -7,9 +7,9 @@ import messages.Message;
 import messages.RemovedMessage;
 
 import java.io.*;
-import java.nio.ByteBuffer;
-import java.nio.channels.AsynchronousFileChannel;
-import java.nio.file.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -28,6 +28,8 @@ public class PeerInternalState implements Serializable {
     private long occupation;
 
     private final transient Peer peer;
+
+    private transient boolean acceptingRequests = true;
 
     public PeerInternalState(Peer peer) {
         this.sentChunksMap = new ConcurrentHashMap<>();
@@ -99,7 +101,7 @@ public class PeerInternalState implements Serializable {
     }
 
     private void updateOccupation() {
-        this.occupation = this.getOccupation();
+        this.occupation = this.calculateOccupation();
     }
 
     public void storeChunk(SavedChunk chunk) {
@@ -240,6 +242,31 @@ public class PeerInternalState implements Serializable {
             this.deleteChunk(chunk);
             this.getSavedChunksMap().remove(chunk.getChunkId());
         }
+    }
+
+    public void interruptPutchunks() {
+        this.setAcceptingRequests(false);
+    }
+
+    private void setAcceptingRequests(boolean acceptingRequests) {
+        this.acceptingRequests = acceptingRequests;
+        if (acceptingRequests) {
+            System.out.println("[PIS] Peer is now accepting PUTCHUNKS");
+        } else {
+            System.out.println("[PIS] Peers is not accepting requests as of this moment, it will be available in 2 minutes");
+            TimerTask timerTask = new TimerTask() {
+                @Override
+                public void run() {
+                    setAcceptingRequests(true);
+                }
+            };
+            Timer timer = new Timer(true);
+            timer.schedule(timerTask, 2*60*1000);
+        }
+    }
+
+    public boolean isAcceptingRequests() {
+        return acceptingRequests;
     }
 
     public long calculateOccupation() {
