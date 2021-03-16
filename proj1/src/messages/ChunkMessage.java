@@ -5,6 +5,7 @@ import tasks.ChunkTask;
 import tasks.Task;
 
 import java.nio.charset.StandardCharsets;
+import java.util.concurrent.ExecutorService;
 
 public class ChunkMessage extends Message {
     public ChunkMessage(String protocolVersion, int senderId, String fileId, int chunkNo, byte[] body) {
@@ -29,5 +30,10 @@ public class ChunkMessage extends Message {
     @Override
     public Task createTask(Peer peer) {
         return new ChunkTask(this, peer);
+    }
+
+    @Override
+    public ExecutorService getWorker(Peer peer) {
+        return peer.getAcknowledgmentsExecutor();
     }
 }

@@ -11,6 +11,8 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
 public class FutureFile {
@@ -55,7 +57,7 @@ public class FutureFile {
 
         List<Future<SentChunk>> promisedChunks = new ArrayList<>();
         for (SentChunk chunk : this.sentChunks) {
-            promisedChunks.add(this.peer.getSenderExecutor().submit(new RestoreChunk(peer, chunk)));
+            promisedChunks.add(this.peer.getIOExecutor().submit(new RestoreChunk(peer, chunk)));
         }
 
         for (Future<SentChunk> promised : promisedChunks) {

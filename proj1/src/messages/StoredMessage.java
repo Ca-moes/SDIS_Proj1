@@ -5,6 +5,7 @@ import tasks.StoredTask;
 import tasks.Task;
 
 import java.nio.charset.StandardCharsets;
+import java.util.concurrent.ExecutorService;
 
 public class StoredMessage extends Message {
     public StoredMessage(String protocolVersion, int senderId, String fileId, int chunkNo) {
@@ -24,5 +25,10 @@ public class StoredMessage extends Message {
     @Override
     public Task createTask(Peer peer) {
         return new StoredTask(this, peer);
+    }
+
+    @Override
+    public ExecutorService getWorker(Peer peer) {
+        return peer.getAcknowledgmentsExecutor();
     }
 }

@@ -5,6 +5,7 @@ import tasks.RemovedTask;
 import tasks.Task;
 
 import java.nio.charset.StandardCharsets;
+import java.util.concurrent.ExecutorService;
 
 public class RemovedMessage extends Message {
     public RemovedMessage(String protocolVersion, int senderId, String fileId, int chunkNo) {
@@ -24,5 +25,10 @@ public class RemovedMessage extends Message {
     @Override
     public Task createTask(Peer peer) {
         return new RemovedTask(this, peer);
+    }
+
+    @Override
+    public ExecutorService getWorker(Peer peer) {
+        return peer.getAcknowledgmentsExecutor();
     }
 }

@@ -14,6 +14,7 @@ import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.regex.Matcher;
@@ -28,8 +29,10 @@ public class Peer implements InitiatorPeer {
     private int peerId;
     private String protocolVersion;
 
-    private final ExecutorService threadPoolExecutor;
-    private final ExecutorService senderExecutor;
+    private final ExecutorService triageExecutor;
+    private final ExecutorService requestsExecutor;
+    private final ExecutorService acknowledgmentsExecutor;
+    private final ExecutorService IOExecutor;
 
     private final PeerInternalState internalState;
 
@@ -57,8 +60,12 @@ public class Peer implements InitiatorPeer {
 
     public Peer(String[] args) throws IOException {
         parseArgs(args);
-        this.threadPoolExecutor = Executors.newFixedThreadPool(64);
-        this.senderExecutor = Executors.newFixedThreadPool(64);
+
+        this.triageExecutor = Executors.newFixedThreadPool(Constants.TRIAGE_WORKERS);
+        this.requestsExecutor = Executors.newFixedThreadPool(Constants.REQUESTS_WORKERS);
+        this.acknowledgmentsExecutor = Executors.newFixedThreadPool(Constants.ACKS_WORKERS);
+        this.IOExecutor = Executors.newFixedThreadPool(Constants.IO_WORKERS);
+
         this.internalState = PeerInternalState.loadInternalState(this);
     }
 
@@ -122,14 +129,6 @@ public class Peer implements InitiatorPeer {
         return protocolVersion;
     }
 
-    public ExecutorService getSenderExecutor() {
-        return senderExecutor;
-    }
-
-    public ExecutorService getThreadPoolExecutor() {
-        return threadPoolExecutor;
-    }
-
     public PeerInternalState getInternalState() {
         return internalState;
     }
@@ -156,10 +155,10 @@ public class Peer implements InitiatorPeer {
                         file.getFileID(),
                         i,
                         replicationDegree,
-                        buffer
+                        Arrays.copyOf(buffer, buffer.length)
                 );
                 size = buffer.length;
-                this.senderExecutor.submit(new BackupChunk(message, this, true));
+                this.IOExecutor.submit(new BackupChunk(message, this, true));
                 System.out.printf("[%s] SENDING CHUNK: %d of %d\n", pathname, i+1, numberOfChunks);
                 i++;
             }
@@ -173,7 +172,7 @@ public class Peer implements InitiatorPeer {
                         replicationDegree,
                         new byte[0]
                 );
-                this.senderExecutor.submit(new BackupChunk(message, this, true));
+                this.IOExecutor.submit(new BackupChunk(message, this, true));
                 System.out.printf("[%s] SENDING CHUNK: %d of %d\n", pathname, i+1, numberOfChunks);
             }
         } catch (IOException e) {
@@ -192,6 +191,8 @@ public class Peer implements InitiatorPeer {
 
             FutureFile futureFile = new FutureFile(fileId, pathname, this);
             futureFile.restoreFile();
+        } else {
+            System.out.println("[PEER] I dont have that file backed up! Aborting...");
         }
     }
 
@@ -228,18 +229,19 @@ public class Peer implements InitiatorPeer {
         System.out.printf("[CLIENT] Reclaiming %d KB of storage - ('0' means all space)\n", maxDiskSpace);
 
         if (maxDiskSpace == 0) {
+            this.internalState.interruptPutchunks();
+            this.internalState.setCapacity(0);
             System.out.println("[PEER] Removing all chunks");
             // delete every chunk and reset capacity
             for (String chunkId : this.internalState.getSavedChunksMap().keySet()) {
                 SavedChunk chunk = this.internalState.getSavedChunksMap().get(chunkId);
-                Message message = new RemovedMessage(this.protocolVersion, this.peerId, chunk.getFileId(), chunk.getChunkNo());
-                this.multicastControl.sendMessage(message);
-
                 this.internalState.deleteChunk(chunk);
                 this.internalState.getSavedChunksMap().remove(chunkId);
+
+                Message message = new RemovedMessage(this.protocolVersion, this.peerId, chunk.getFileId(), chunk.getChunkNo());
+                this.multicastControl.sendMessage(message);
             }
             this.internalState.commit();
-            this.internalState.setCapacity(Constants.DEFAULT_CAPACITY);
             return;
         }
 
@@ -254,29 +256,32 @@ public class Peer implements InitiatorPeer {
         }
 
         this.internalState.setCapacity(maxDiskSpace*1000);
-        while (this.internalState.getPeerOccupation() > this.internalState.getCapacity() && !this.internalState.getSavedChunksMap().isEmpty()) {
+        this.internalState.interruptPutchunks();
+        while (this.internalState.getOccupation() > this.internalState.getCapacity() && !this.internalState.getSavedChunksMap().isEmpty()) {
             // first remove the chunks with higher perceived replication degree than the required rep. degree
-            while (this.internalState.getPeerOccupation() > this.internalState.getCapacity() && !safeDeletions.isEmpty()) {
+            while (this.internalState.getOccupation() > this.internalState.getCapacity() && !safeDeletions.isEmpty()) {
                 SavedChunk chunk = safeDeletions.remove(0);
-                Message message = new RemovedMessage(this.protocolVersion, this.peerId, chunk.getFileId(), chunk.getChunkNo());
-                this.multicastControl.sendMessage(message);
 
-                System.out.printf("[PEER] Safe deleting %s\n", chunk.getChunkId());
+                // System.out.printf("[PEER] Safe deleting %s\n", chunk.getChunkId());
                 this.internalState.deleteChunk(chunk);
                 this.internalState.getSavedChunksMap().remove(chunk.getChunkId());
+
+                Message message = new RemovedMessage(this.protocolVersion, this.peerId, chunk.getFileId(), chunk.getChunkNo());
+                this.multicastControl.sendMessage(message);
             }
-            System.out.printf("[PEER] Space Occupied after safe deleting: %d\n", this.internalState.getPeerOccupation());
+            System.out.printf("[PEER] Space Occupied after safe deleting: %d\n", this.internalState.getOccupation());
             // if it got here, then it means removing the safe chunks was not enough, so it needs to proceed removing other chunks
-            while (this.internalState.getPeerOccupation() > this.internalState.getCapacity() && !unsafeDeletions.isEmpty()) {
+            while (this.internalState.getOccupation() > this.internalState.getCapacity() && !unsafeDeletions.isEmpty()) {
                 SavedChunk chunk = unsafeDeletions.remove(0);
-                Message message = new RemovedMessage(this.protocolVersion, this.peerId, chunk.getFileId(), chunk.getChunkNo());
-                this.multicastControl.sendMessage(message);
 
-                System.out.printf("[PEER] Unsafe deleting %s\n", chunk.getChunkId());
+                // System.out.printf("[PEER] Unsafe deleting %s\n", chunk.getChunkId());
                 this.internalState.deleteChunk(chunk);
                 this.internalState.getSavedChunksMap().remove(chunk.getChunkId());
+
+                Message message = new RemovedMessage(this.protocolVersion, this.peerId, chunk.getFileId(), chunk.getChunkNo());
+                this.multicastControl.sendMessage(message);
             }
-            System.out.printf("[PEER] Occupation after unsafe deleting: %d\n", this.internalState.getPeerOccupation());
+            System.out.printf("[PEER] Occupation after unsafe deleting: %d\n", this.internalState.getOccupation());
         }
         // time to commit to the database to register the changes made
         this.internalState.commit();
@@ -285,5 +290,21 @@ public class Peer implements InitiatorPeer {
     @Override
     public String state() throws RemoteException {
         return this.internalState.toString();
+    }
+
+    public ExecutorService getTriageExecutor() {
+        return triageExecutor;
+    }
+
+    public ExecutorService getRequestsExecutor() {
+        return requestsExecutor;
+    }
+
+    public ExecutorService getAcknowledgmentsExecutor() {
+        return acknowledgmentsExecutor;
+    }
+
+    public ExecutorService getIOExecutor() {
+        return IOExecutor;
     }
 }

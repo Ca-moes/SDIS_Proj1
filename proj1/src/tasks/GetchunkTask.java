@@ -12,7 +12,7 @@ public class GetchunkTask extends Task {
     }
 
     @Override
-    public void start() {
+    public void run() {
         if (!this.peer.getInternalState().getSavedChunksMap().containsKey(message.getFileId() + "_" + message.getChunkNo())) {
             // System.out.printf("[GETCHUNK] I dont have that chunk! %s\n", message.getFileId() + "_" + message.getChunkNo());
             return;
@@ -50,6 +50,6 @@ public class GetchunkTask extends Task {
         // no need to keep the body in memory
         chunk.clearBody();
         chunk.setBeingHandled(false);
-        System.out.println("[GETCHUNK] Sent a chunk!");
+        // System.out.println("[GETCHUNK] Sent a chunk!");
     }
 }

@@ -19,20 +19,23 @@ public class PeerInternalState implements Serializable {
     // chunkId -> saved chunk
     private final ConcurrentHashMap<String, SavedChunk> savedChunksMap;
     private final ConcurrentHashMap<String, String> backedUpFilesMap;
-    private final HashSet<String> deletedFiles;
+    private final Set<String> deletedFiles;
 
     private static transient String PEER_DIRECTORY = "peer%d";
     private static transient String DB_FILENAME = "peer%d/data.ser";
     private static transient String CHUNK_PATH = "%s/%s/%d";
     private long capacity = Constants.DEFAULT_CAPACITY;
+    private long occupation;
 
     private final transient Peer peer;
+
+    private transient boolean acceptingRequests = true;
 
     public PeerInternalState(Peer peer) {
         this.sentChunksMap = new ConcurrentHashMap<>();
         this.savedChunksMap = new ConcurrentHashMap<>();
         this.backedUpFilesMap = new ConcurrentHashMap<>();
-        this.deletedFiles = new HashSet<>();
+        this.deletedFiles = ConcurrentHashMap.newKeySet();
         this.peer = peer;
     }
 
@@ -78,6 +81,7 @@ public class PeerInternalState implements Serializable {
             e.printStackTrace();
             return;
         }
+        this.updateOccupation();
         System.out.println("[PIS] - Database Loaded/Created Successfully");
     }
 
@@ -92,7 +96,12 @@ public class PeerInternalState implements Serializable {
         } catch (IOException i) {
             i.printStackTrace();
         }
-//        System.out.println("[PIS] - Saved Database: " + this);
+
+        this.updateOccupation();
+    }
+
+    private void updateOccupation() {
+        this.occupation = this.calculateOccupation();
     }
 
     public void storeChunk(SavedChunk chunk) {
@@ -109,19 +118,21 @@ public class PeerInternalState implements Serializable {
             chunk.clearBody();
 
             chunk.getPeers().add(peer.getPeerId());
+            updateOccupation();
         } catch (IOException i) {
             System.out.println("[PIS] - Couldn't Save chunk " + chunk.getChunkId() + " on this peer");
             i.printStackTrace();
         }
+
     }
 
-    public void updateStoredConfirmation(SentChunk chunk, int replier) {
+    public synchronized void updateStoredConfirmation(SentChunk chunk, int replier) {
         if (sentChunksMap.containsKey(chunk.getChunkId())) {
             sentChunksMap.get(chunk.getChunkId()).getPeers().add(replier);
         }
     }
 
-    public void updateStoredConfirmation(SavedChunk chunk, int replier) {
+    public synchronized void updateStoredConfirmation(SavedChunk chunk, int replier) {
         if (savedChunksMap.containsKey(chunk.getChunkId())) {
             savedChunksMap.get(chunk.getChunkId()).getPeers().add(replier);
         }
@@ -170,6 +181,7 @@ public class PeerInternalState implements Serializable {
         file.delete();
 
         this.deleteEmptyFolders();
+        this.updateOccupation();
     }
 
     private void deleteEmptyFolders() {
@@ -195,7 +207,7 @@ public class PeerInternalState implements Serializable {
         this.commit();
     }
 
-    public HashSet<String> getDeletedFiles() {
+    public Set<String> getDeletedFiles() {
         return deletedFiles;
     }
 
@@ -232,12 +244,50 @@ public class PeerInternalState implements Serializable {
         }
     }
 
-    public long getPeerOccupation() {
+    public void interruptPutchunks() {
+        this.setAcceptingRequests(false);
+    }
+
+    private void setAcceptingRequests(boolean acceptingRequests) {
+        this.acceptingRequests = acceptingRequests;
+        Timer timer = new Timer(true);
+        TimerTask timerTask1 = new TimerTask() {
+            @Override
+            public void run() {
+                System.out.println("[PIS] Peer is not accepting requests as of this moment.");
+            }
+        };
+
+        if (acceptingRequests) {
+            System.out.println("[PIS] Peer is now accepting PUTCHUNKS");
+            timer.cancel();
+        } else {
+            System.out.println("[PIS] Peer is not accepting requests as of this moment, it will be available in 2 minutes");
+            TimerTask timerTask = new TimerTask() {
+                @Override
+                public void run() {
+                    setAcceptingRequests(true);
+                }
+            };
+            timer.schedule(timerTask, 2*60*1000);
+            timer.scheduleAtFixedRate(timerTask1, 0, 5000);
+        }
+    }
+
+    public boolean isAcceptingRequests() {
+        return acceptingRequests;
+    }
+
+    public long calculateOccupation() {
         return directorySize(new File(PEER_DIRECTORY));
     }
 
     public void setCapacity(long capacity) {
         this.capacity = capacity;
+    }
+
+    public long getOccupation() {
+        return occupation;
     }
 
     public long getCapacity() {

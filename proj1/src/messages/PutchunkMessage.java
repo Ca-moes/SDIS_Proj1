@@ -4,6 +4,8 @@ import peer.Peer;
 import tasks.PutchunkTask;
 import tasks.Task;
 
+import java.util.concurrent.ExecutorService;
+
 public class PutchunkMessage extends Message {
     public PutchunkMessage(String protocolVersion, int senderId, String fileId, int chunkNo, int replicationDegree, byte[] body) {
         super(protocolVersion, "PUTCHUNK", senderId, fileId, chunkNo, replicationDegree, body);
@@ -22,5 +24,10 @@ public class PutchunkMessage extends Message {
     @Override
     public Task createTask(Peer peer) {
         return new PutchunkTask(this, peer);
+    }
+
+    @Override
+    public ExecutorService getWorker(Peer peer) {
+        return peer.getRequestsExecutor();
     }
 }
