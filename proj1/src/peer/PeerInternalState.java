@@ -250,18 +250,27 @@ public class PeerInternalState implements Serializable {
 
     private void setAcceptingRequests(boolean acceptingRequests) {
         this.acceptingRequests = acceptingRequests;
+        Timer timer = new Timer(true);
+        TimerTask timerTask1 = new TimerTask() {
+            @Override
+            public void run() {
+                System.out.println("[PIS] Peer is not accepting requests as of this moment.");
+            }
+        };
+
         if (acceptingRequests) {
             System.out.println("[PIS] Peer is now accepting PUTCHUNKS");
+            timer.cancel();
         } else {
-            System.out.println("[PIS] Peers is not accepting requests as of this moment, it will be available in 2 minutes");
+            System.out.println("[PIS] Peer is not accepting requests as of this moment, it will be available in 2 minutes");
             TimerTask timerTask = new TimerTask() {
                 @Override
                 public void run() {
                     setAcceptingRequests(true);
                 }
             };
-            Timer timer = new Timer(true);
             timer.schedule(timerTask, 2*60*1000);
+            timer.scheduleAtFixedRate(timerTask1, 0, 5000);
         }
     }
 

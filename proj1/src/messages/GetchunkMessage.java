@@ -29,6 +29,6 @@ public class GetchunkMessage extends Message {
 
     @Override
     public ExecutorService getWorker(Peer peer) {
-        return peer.getAcknowledgmentsExecutor();
+        return peer.getRequestsExecutor();
     }
 }

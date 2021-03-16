@@ -34,6 +34,6 @@ public class ChunkMessage extends Message {
 
     @Override
     public ExecutorService getWorker(Peer peer) {
-        return peer.getRequestsExecutor();
+        return peer.getAcknowledgmentsExecutor();
     }
 }

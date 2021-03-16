@@ -259,7 +259,7 @@ public class Peer implements InitiatorPeer {
         this.internalState.interruptPutchunks();
         while (this.internalState.getOccupation() > this.internalState.getCapacity() && !this.internalState.getSavedChunksMap().isEmpty()) {
             // first remove the chunks with higher perceived replication degree than the required rep. degree
-            while (this.internalState.calculateOccupation() > this.internalState.getCapacity() && !safeDeletions.isEmpty()) {
+            while (this.internalState.getOccupation() > this.internalState.getCapacity() && !safeDeletions.isEmpty()) {
                 SavedChunk chunk = safeDeletions.remove(0);
 
                 // System.out.printf("[PEER] Safe deleting %s\n", chunk.getChunkId());
@@ -269,7 +269,7 @@ public class Peer implements InitiatorPeer {
                 Message message = new RemovedMessage(this.protocolVersion, this.peerId, chunk.getFileId(), chunk.getChunkNo());
                 this.multicastControl.sendMessage(message);
             }
-            System.out.printf("[PEER] Space Occupied after safe deleting: %d\n", this.internalState.calculateOccupation());
+            System.out.printf("[PEER] Space Occupied after safe deleting: %d\n", this.internalState.getOccupation());
             // if it got here, then it means removing the safe chunks was not enough, so it needs to proceed removing other chunks
             while (this.internalState.getOccupation() > this.internalState.getCapacity() && !unsafeDeletions.isEmpty()) {
                 SavedChunk chunk = unsafeDeletions.remove(0);

@@ -18,7 +18,7 @@ public class PutchunkTask extends Task {
         Message reply = new StoredMessage(peer.getProtocolVersion(), peer.getPeerId(), message.getFileId(), message.getChunkNo());
 
         if (!this.peer.getInternalState().isAcceptingRequests()) {
-            System.out.println("[PUTCHUNK] Peer is not accepting requests as of now. It is probably reclaiming some space.");
+            // System.out.println("[PUTCHUNK] Peer is not accepting requests as of now. It is probably reclaiming some space.");
             return;
         }
 
