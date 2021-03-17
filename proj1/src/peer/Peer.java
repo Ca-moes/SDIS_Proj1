@@ -1,9 +1,6 @@
 package peer;
 
-import files.BackedUpFile;
-import files.FutureFile;
-import files.IOUtils;
-import files.SavedChunk;
+import files.*;
 import messages.*;
 import jobs.BackupChunk;
 
@@ -150,31 +147,23 @@ public class Peer implements InitiatorPeer {
             int i = 0;
             int size = 0;
             while ((buffer = file.getNextChunk()) != null) {
-                Message message = new PutchunkMessage(
-                        this.protocolVersion,
-                        this.peerId,
-                        file.getFileID(),
-                        i,
-                        replicationDegree,
-                        Arrays.copyOf(buffer, buffer.length)
-                );
                 size = buffer.length;
-                this.IOExecutor.submit(new BackupChunk(message, this, true));
+                SentChunk chunk = new SentChunk(file.getFileID(), i, replicationDegree);
+                chunk.setBody(Arrays.copyOf(buffer, buffer.length));
+                this.internalState.getSentChunksMap().put(chunk.getChunkId(), chunk);
+
                 System.out.printf("[%s] SENDING CHUNK: %d of %d\n", pathname, i+1, numberOfChunks);
+                this.IOExecutor.submit(new BackupChunk(chunk, this, 1));
                 i++;
             }
             if (size == 64000) {
                 System.out.println("FILE WITH MULTIPLE OF 64KB, SENDING AN EMPTY BODY PUTCHAR MESSAGE");
-                Message message = new PutchunkMessage(
-                        this.protocolVersion,
-                        this.peerId,
-                        file.getFileID(),
-                        i,
-                        replicationDegree,
-                        new byte[0]
-                );
-                this.IOExecutor.submit(new BackupChunk(message, this, true));
+                SentChunk chunk = new SentChunk(file.getFileID(), i, replicationDegree);
+                chunk.setBody(Arrays.copyOf(buffer, buffer.length));
+                this.internalState.getSentChunksMap().put(chunk.getChunkId(), chunk);
+
                 System.out.printf("[%s] SENDING CHUNK: %d of %d\n", pathname, i+1, numberOfChunks);
+                this.IOExecutor.submit(new BackupChunk(chunk, this, 1));
             }
         } catch (IOException e) {
             e.printStackTrace();

@@ -30,8 +30,7 @@ public class RemovedTask extends Task {
                 if (!chunk.receivedPutchunk()) {
                     this.peer.getInternalState().fillBodyFromDisk(chunk);
                     if (chunk.getBody() != null) {
-                        Message message = new PutchunkMessage(this.peer.getProtocolVersion(), this.peer.getPeerId(), chunk.getFileId(), chunk.getChunkNo(), chunk.getReplicationDegree(), chunk.getBody());
-                        this.peer.getIOExecutor().submit(new BackupChunk(message, peer, false));
+                        this.peer.getIOExecutor().submit(new BackupChunk(chunk, this.peer, 1));
                     }
                 } else {
                     System.out.printf("[PEER] Already Received a PUTCHUNK for %s\n", chunk.getChunkId());

@@ -18,7 +18,7 @@ public class SendStoredChunk implements Runnable {
 
     @Override
     public void run() {
-        System.out.println("[DEBUG] SEND STORED CHUNK STARTED!");
+        // System.out.println("[DEBUG] SEND STORED CHUNK STARTED!");
         if (chunk.isStored() && peer.getInternalState().getSavedChunksMap().containsKey(chunk.getChunkId())) {
             // peer has this chunk stored and it will send a stored anyways
             peer.getMulticastControl().sendMessage(message);

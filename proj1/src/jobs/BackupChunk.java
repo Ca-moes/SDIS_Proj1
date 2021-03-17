@@ -1,46 +1,33 @@
 package jobs;
 
 import files.Chunk;
-import files.SentChunk;
 import messages.Message;
+import messages.PutchunkMessage;
 import peer.Peer;
 
-public class BackupChunk implements Runnable {
-    private final Message message;
-    private final Peer peer;
-    private final boolean local;
+import java.util.concurrent.TimeUnit;
 
-    public BackupChunk(Message message, Peer peer, boolean local) {
-        this.message = message;
+public class BackupChunk implements Runnable {
+    private final Chunk chunk;
+    private final Peer peer;
+    private final int timeout;
+
+    public BackupChunk(Chunk chunk, Peer peer, int timeout) {
+        this.chunk = chunk;
         this.peer = peer;
-        this.local = local;
+        this.timeout = timeout;
     }
 
     @Override
     public void run() {
-        Chunk chunk;
-        if (!local) {
-            chunk = this.peer.getInternalState().getSavedChunksMap().get(message.getFileId() + "_" + message.getChunkNo());
-        } else {
-            chunk = new SentChunk(message.getFileId(), message.getChunkNo(), message.getReplicationDegree());
-            this.peer.getInternalState().getSentChunksMap().put(chunk.getChunkId(), (SentChunk) chunk);
-        }
-
-        int timeout = 1000;
-        while (timeout <= 32000) {
-            try {
-                this.peer.getMulticastDataBackup().sendMessage(message);
-                Thread.sleep(timeout);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-            if (chunk.getPeers().size() < message.getReplicationDegree()) {
-                timeout = 2 * timeout;
-            } else {
-                this.peer.getInternalState().commit();
-                System.out.println("[PEER] Chunk Backed Up - " + chunk.getChunkId());
-                break;
-            }
-        }
+        Message message = new PutchunkMessage(
+                this.peer.getProtocolVersion(),
+                this.peer.getPeerId(),
+                chunk.getFileId(),
+                chunk.getChunkNo(),
+                chunk.getReplicationDegree(),
+                chunk.getBody());
+        this.peer.getMulticastDataBackup().sendMessage(message);
+        this.peer.getRequestsExecutor().schedule(new ReceiveStoredChunk(chunk, peer, timeout), timeout, TimeUnit.SECONDS);
     }
 }
