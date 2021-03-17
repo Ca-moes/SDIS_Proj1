@@ -1,9 +1,11 @@
 package peer;
 
 import files.*;
-import jobs.DeleteFile;
-import messages.*;
 import jobs.BackupChunk;
+import jobs.DeleteFile;
+import messages.Message;
+import messages.MulticastService;
+import messages.RemovedMessage;
 
 import java.io.IOException;
 import java.net.InetAddress;
@@ -11,7 +13,6 @@ import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -160,7 +161,7 @@ public class Peer implements InitiatorPeer {
             if (size == 64000) {
                 System.out.println("FILE WITH MULTIPLE OF 64KB, SENDING AN EMPTY BODY PUTCHAR MESSAGE");
                 SentChunk chunk = new SentChunk(file.getFileID(), i, replicationDegree);
-                chunk.setBody(Arrays.copyOf(buffer, buffer.length));
+                chunk.setBody(new byte[0]);
                 this.internalState.getSentChunksMap().put(chunk.getChunkId(), chunk);
 
                 System.out.printf("[%s] SENDING CHUNK: %d of %d\n", pathname, i+1, numberOfChunks);

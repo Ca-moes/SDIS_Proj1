@@ -7,6 +7,10 @@ import jobs.RestoreChunk;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.RandomAccessFile;
+import java.nio.channels.AsynchronousFileChannel;
+import java.nio.channels.FileChannel;
+import java.nio.file.OpenOption;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -19,7 +23,6 @@ public class FutureFile {
     private final Peer peer;
     private final int numChunks;
     private final List<SentChunk> sentChunks = new ArrayList<>();
-    private final List<SentChunk> filledChunks = new ArrayList<>();
 
     private String restoredPathname = "%s/restored_%s";
 
@@ -58,9 +61,12 @@ public class FutureFile {
             promisedChunks.add(this.peer.getIOExecutor().submit(new RestoreChunk(peer, chunk)));
         }
 
+        RandomAccessFile randomAccessFile = new RandomAccessFile(new File(this.restoredPathname), "rw");
+
         for (Future<SentChunk> promised : promisedChunks) {
-            SentChunk chunk = promised.get();
             // waits here for the respective promise to be fulfilled
+            SentChunk chunk = promised.get();
+
             if (chunk == null || chunk.getBody() == null) {
                 System.out.println("[PEER] One or more chunks are missing!");
                 return;
@@ -69,33 +75,16 @@ public class FutureFile {
                 System.out.println("[PEER] Received a chunk with less than 64KB but it was not the last chunk!");
                 return;
             }
+
             System.out.printf("[PEER] Received Chunk - %s\n", chunk.getChunkId());
-            // All is good, add chunk to the chunks to be handled
-            filledChunks.add(chunk);
-            // store the chunk locally, we could theoretically get a 64GB file and
-            // not all of us have a 64GB+ RAM PC :(
-            peer.getInternalState().storeChunk(new SavedChunk(chunk));
-            // so we need to clear the body as we dont need it in cache
+
+            randomAccessFile.seek(chunk.getChunkNo() * 64000L);
+            randomAccessFile.write(chunk.getBody());
+
             chunk.clearBody();
         }
+        randomAccessFile.close();
 
-        System.out.printf("[PEER] Gathered all chunks (%d) - Starting Reconstruction\n", filledChunks.size());
-
-        // we did not guarantee the chunks were sorted, will do that now
-        filledChunks.sort(Comparator.comparingInt(Chunk::getChunkNo));
-
-        // read the file from the filesystem
-        File restored = new File(this.restoredPathname);
-        restored.getParentFile().mkdirs();
-        restored.createNewFile();
-        FileOutputStream stream = new FileOutputStream(restored, true);
-        for (SentChunk chunk : filledChunks) {
-            peer.getInternalState().fillBodyFromDisk(chunk);
-            stream.write(chunk.getBody());
-            peer.getInternalState().deleteChunk(chunk);
-            chunk.clearBody();
-        }
-        stream.close();
         System.out.printf("[PEER] %s RESTORED SUCCESSFULLY!\n", this.pathname);
     }
 }
