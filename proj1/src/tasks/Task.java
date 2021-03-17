@@ -14,28 +14,17 @@ public abstract class Task implements Runnable {
         this.peer = peer;
     }
 
-    protected void sleep() {
-        try {
-            double lowerBound = Math.sin((double) peer.getInternalState().calculateOccupation() / peer.getInternalState().getCapacity() * 1.5) * 400;
-            //System.out.printf("OCU: %d\nCAP: %d\n", peer.getInternalState().getPeerOccupation(), peer.getInternalState().getCapacity());
-            enhancedSleep((int) lowerBound);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-    }
-
     protected int getSleepTimeDefault() {
         return ThreadLocalRandom.current().nextInt(0, 401);
     }
 
+    /**
+     * Enhancement 1 - Sleeping Lower Bound is determinate by the occupation rate, meaning peers with higher occupation
+     * rate will sleep (probably) for longer than the other peers
+     * @return sleep time (milliseconds)
+     */
     protected int getSleepTime() {
         int lowerBound = (int) Math.sin((double) peer.getInternalState().calculateOccupation() / peer.getInternalState().getCapacity() * 1.5) * 400;
         return ThreadLocalRandom.current().nextInt(lowerBound, 401);
-    }
-
-    private void enhancedSleep(int lowerBound) throws InterruptedException {
-        int sleep = ThreadLocalRandom.current().nextInt(lowerBound, 401);
-        //System.out.printf("[%s] - (lower-%d) sleeping for %3d ms%n", message.getType(), lowerBound, sleep);
-        Thread.sleep(sleep);
     }
 }

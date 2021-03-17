@@ -224,42 +224,11 @@ public class Peer implements InitiatorPeer {
             return;
         }
 
-        ArrayList<SavedChunk> safeDeletions = new ArrayList<>();
-        ArrayList<SavedChunk> unsafeDeletions = new ArrayList<>();
-        for (String chunkId : this.internalState.getSavedChunksMap().keySet()) {
-            SavedChunk chunk = this.internalState.getSavedChunksMap().get(chunkId);
-            if (chunk.getPeers().size() > chunk.getReplicationDegree())
-                safeDeletions.add(chunk);
-            else
-                unsafeDeletions.add(chunk);
-        }
-
         this.internalState.setCapacity(maxDiskSpace*1000);
         if (maxDiskSpace <= this.internalState.getCapacity())
             this.internalState.interruptPutchunks();
 
-        while (this.internalState.getOccupation() > this.internalState.getCapacity() && !safeDeletions.isEmpty()) {
-            SavedChunk chunk = safeDeletions.remove(0);
-
-            // System.out.printf("[PEER] Safe deleting %s\n", chunk.getChunkId());
-            this.internalState.deleteChunk(chunk);
-            this.internalState.getSavedChunksMap().remove(chunk.getChunkId());
-            this.internalState.commit();
-            Message message = new RemovedMessage(this.protocolVersion, this.peerId, chunk.getFileId(), chunk.getChunkNo());
-            this.multicastControl.sendMessage(message);
-        }
-        System.out.printf("[PEER] Occupation after safe deleting: %d\n", this.internalState.getOccupation());
-        while (this.internalState.getOccupation() > this.internalState.getCapacity() && !unsafeDeletions.isEmpty()) {
-            SavedChunk chunk = unsafeDeletions.remove(0);
-
-            // System.out.printf("[PEER] Unsafe deleting %s\n", chunk.getChunkId());
-            this.internalState.deleteChunk(chunk);
-            this.internalState.getSavedChunksMap().remove(chunk.getChunkId());
-            this.internalState.commit();
-            Message message = new RemovedMessage(this.protocolVersion, this.peerId, chunk.getFileId(), chunk.getChunkNo());
-            this.multicastControl.sendMessage(message);
-        }
-        System.out.printf("[PEER] Occupation after unsafe deleting: %d\n", this.internalState.getOccupation());
+        this.internalState.forceFreeSpace();
     }
 
     @Override

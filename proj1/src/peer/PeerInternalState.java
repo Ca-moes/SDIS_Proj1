@@ -229,7 +229,44 @@ public class PeerInternalState implements Serializable {
         }
     }
 
-    public void freeSpace() {
+    public void forceFreeSpace() {
+        ArrayList<SavedChunk> safeDeletions = new ArrayList<>();
+        ArrayList<SavedChunk> unsafeDeletions = new ArrayList<>();
+        for (String chunkId : this.getSavedChunksMap().keySet()) {
+            SavedChunk chunk = this.getSavedChunksMap().get(chunkId);
+            if (chunk.getPeers().size() > chunk.getReplicationDegree())
+                safeDeletions.add(chunk);
+            else
+                unsafeDeletions.add(chunk);
+        }
+
+        while (this.occupation > this.capacity && !safeDeletions.isEmpty()) {
+            SavedChunk chunk = safeDeletions.remove(0);
+
+            // System.out.printf("[PEER] Safe deleting %s\n", chunk.getChunkId());
+            this.removeChunk(chunk);
+        }
+        System.out.printf("[PEER] Occupation after safe deleting: %d\n", this.occupation);
+        while (this.occupation > this.capacity && !unsafeDeletions.isEmpty()) {
+            SavedChunk chunk = unsafeDeletions.remove(0);
+
+            // System.out.printf("[PEER] Unsafe deleting %s\n", chunk.getChunkId());
+            this.removeChunk(chunk);
+        }
+        System.out.printf("[PEER] Occupation after unsafe deleting: %d\n", this.occupation);
+    }
+
+    private void removeChunk(Chunk chunk) {
+        this.deleteChunk(chunk);
+        this.getSavedChunksMap().remove(chunk.getChunkId());
+        this.commit();
+        Message message = new RemovedMessage(this.peer.getProtocolVersion(), this.peer.getPeerId(), chunk.getFileId(), chunk.getChunkNo());
+        this.peer.getMulticastControl().sendMessage(message);
+    }
+
+    public boolean freeSpace() {
+        if (!this.acceptingRequests) return false;
+        lockRequests(false);
         System.out.println("[PIS] Trying to free some space...");
 
         ArrayList<SavedChunk> safeDeletions = new ArrayList<>();
@@ -241,13 +278,18 @@ public class PeerInternalState implements Serializable {
 
         while (!safeDeletions.isEmpty()) {
             SavedChunk chunk = safeDeletions.remove(0);
-            Message message = new RemovedMessage(this.peer.getProtocolVersion(), this.peer.getPeerId(), chunk.getFileId(), chunk.getChunkNo());
-            this.peer.getMulticastControl().sendMessage(message);
 
             System.out.printf("[PEER] Safe deleting %s\n", chunk.getChunkId());
             this.deleteChunk(chunk);
             this.getSavedChunksMap().remove(chunk.getChunkId());
+            this.commit();
+
+            //! Apparently we do not have to send a message if we are removing chunks to clear space for new chunks
+            // Message message = new RemovedMessage(this.peer.getProtocolVersion(), this.peer.getPeerId(), chunk.getFileId(), chunk.getChunkNo());
+            // this.peer.getMulticastControl().sendMessage(message);
         }
+        lockRequests(true);
+        return true;
     }
 
     public void interruptPutchunks() {
@@ -262,15 +304,19 @@ public class PeerInternalState implements Serializable {
             System.out.println("[PIS] Peer is now accepting PUTCHUNKS");
             timer.cancel();
         } else {
-            System.out.println("[PIS] Peer is not accepting requests as of this moment, it will be available in 2 minutes");
+            System.out.println("[PIS] Peer is not accepting requests as of this moment, it will be available in 60 seconds");
             TimerTask timerTask = new TimerTask() {
                 @Override
                 public void run() {
                     setAcceptingRequests(true);
                 }
             };
-            timer.schedule(timerTask, 1*60*1000);
+            timer.schedule(timerTask, 60 * 1000);
         }
+    }
+
+    private void lockRequests(boolean accepting) {
+        this.acceptingRequests = accepting;
     }
 
     public boolean isAcceptingRequests() {
