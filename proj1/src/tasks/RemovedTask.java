@@ -2,10 +2,13 @@ package tasks;
 
 import files.Chunk;
 import jobs.BackupChunk;
+import jobs.ReBackupChunk;
 import messages.Message;
 import messages.PutchunkMessage;
 import messages.RemovedMessage;
 import peer.Peer;
+
+import java.util.concurrent.TimeUnit;
 
 public class RemovedTask extends Task {
     public RemovedTask(RemovedMessage message, Peer peer) {
@@ -16,7 +19,7 @@ public class RemovedTask extends Task {
     public void run() {
         // System.out.println("[PEER] Received a REMOVED message");
 
-        Chunk chunk = null;
+        Chunk chunk;
 
         // checking if peer has that chunk stored
         if (this.peer.getInternalState().getSavedChunksMap().containsKey(message.getFileId() + "_" + message.getChunkNo())) {
@@ -26,15 +29,8 @@ public class RemovedTask extends Task {
             chunk.setReceivedPutchunk(false);
 
             if (chunk.getPeers().size() < chunk.getReplicationDegree() && !chunk.receivedPutchunk()) {
-                sleep();
-                if (!chunk.receivedPutchunk()) {
-                    this.peer.getInternalState().fillBodyFromDisk(chunk);
-                    if (chunk.getBody() != null) {
-                        this.peer.getIOExecutor().submit(new BackupChunk(chunk, this.peer, 1));
-                    }
-                } else {
-                    System.out.printf("[PEER] Already Received a PUTCHUNK for %s\n", chunk.getChunkId());
-                }
+                int timeout = getSleepTimeDefault();
+                this.peer.getRequestsExecutor().schedule(new ReBackupChunk(chunk, peer), timeout, TimeUnit.MILLISECONDS);
             }
         }
         // checking if this a backed up chunk sent

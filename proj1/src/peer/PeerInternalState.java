@@ -174,7 +174,7 @@ public class PeerInternalState implements Serializable {
         }
 
         out.append("CAPACITY: ").append(this.capacity / 1000.0).append("KB\n");
-        out.append("OCCUPIED SPACE: ").append(this.directorySize(new File(PEER_DIRECTORY)) / 1000.0).append("KB\n");
+        out.append("OCCUPIED SPACE: ").append(this.occupation / 1000.0).append("KB\n");
         out.append("Exceeded Rate: ").append(numberOfExceeded / this.sentChunksMap.size()).append("\n");
 
         return out.toString();
@@ -257,17 +257,10 @@ public class PeerInternalState implements Serializable {
     private void setAcceptingRequests(boolean acceptingRequests) {
         this.acceptingRequests = acceptingRequests;
         Timer timer = new Timer(true);
-        TimerTask timerTask1 = new TimerTask() {
-            @Override
-            public void run() {
-                System.out.println("[PIS] Peer is not accepting requests as of this moment.");
-            }
-        };
 
         if (acceptingRequests) {
             System.out.println("[PIS] Peer is now accepting PUTCHUNKS");
             timer.cancel();
-            timerTask1.cancel();
         } else {
             System.out.println("[PIS] Peer is not accepting requests as of this moment, it will be available in 2 minutes");
             TimerTask timerTask = new TimerTask() {
@@ -276,8 +269,7 @@ public class PeerInternalState implements Serializable {
                     setAcceptingRequests(true);
                 }
             };
-            timer.schedule(timerTask, 2*60*1000);
-            timer.scheduleAtFixedRate(timerTask1, 0, 5000);
+            timer.schedule(timerTask, 1*60*1000);
         }
     }
 
@@ -286,7 +278,12 @@ public class PeerInternalState implements Serializable {
     }
 
     public long calculateOccupation() {
-        return directorySize(new File(PEER_DIRECTORY));
+        try {
+            return directorySize(new File(PEER_DIRECTORY));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return -1;
     }
 
     public void setCapacity(long capacity) {
@@ -341,16 +338,11 @@ public class PeerInternalState implements Serializable {
         return size.get();
     }
 
-    public long directorySize(File dir) {
-        /*long size = 0;
-
-        File[] files = dir.listFiles();
-        if (files != null) {
-            for (File file : files) {
-                size += (file.isFile()) ? file.length() : directorySize(file);
-            }
-        }
-        return size;*/
-        return size(dir.toPath());
+    public long directorySize(File dir) throws IOException {
+        Path folder = Paths.get(PEER_DIRECTORY);
+        return Files.walk(folder)
+                .filter(p -> p.toFile().isFile())
+                .mapToLong(p -> p.toFile().length())
+                .sum();
     }
 }

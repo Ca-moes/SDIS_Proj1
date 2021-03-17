@@ -24,6 +24,10 @@ public abstract class Task implements Runnable {
         }
     }
 
+    protected int getSleepTimeDefault() {
+        return ThreadLocalRandom.current().nextInt(0, 401);
+    }
+
     protected int getSleepTime() {
         int lowerBound = (int) Math.sin((double) peer.getInternalState().calculateOccupation() / peer.getInternalState().getCapacity() * 1.5) * 400;
         return ThreadLocalRandom.current().nextInt(lowerBound, 401);
