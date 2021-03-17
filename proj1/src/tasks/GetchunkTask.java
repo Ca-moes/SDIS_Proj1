@@ -1,10 +1,13 @@
 package tasks;
 
 import files.SavedChunk;
+import jobs.SendChunk;
 import messages.ChunkMessage;
 import messages.GetchunkMessage;
 import messages.Message;
 import peer.Peer;
+
+import java.util.concurrent.TimeUnit;
 
 public class GetchunkTask extends Task {
     public GetchunkTask(GetchunkMessage message, Peer peer) {
@@ -34,22 +37,7 @@ public class GetchunkTask extends Task {
         chunk.setBeingHandled(true);
         chunk.setAlreadyProvided(false);
 
-        sleep();
-
-        if (chunk.isAlreadyProvided()) {
-            // System.out.println("[GETCHUNK] I've received a CHUNK message for this chunk so I won't provide it again");
-            return;
-        }
-        if (chunk.getBody() == null) {
-            // System.out.println("[GETCHUNK] Something happened and this chunk lost its body!");
-            return;
-        }
-
-        Message message = new ChunkMessage(this.peer.getProtocolVersion(), this.peer.getPeerId(), chunk.getFileId(), chunk.getChunkNo(), chunk.getBody());
-        this.peer.getMulticastDataRestore().sendMessage(message);
-        // no need to keep the body in memory
-        chunk.clearBody();
-        chunk.setBeingHandled(false);
-        // System.out.println("[GETCHUNK] Sent a chunk!");
+        int timeout = getSleepTime();
+        this.peer.getRequestsExecutor().schedule(new SendChunk(chunk, peer), timeout, TimeUnit.MILLISECONDS);
     }
 }

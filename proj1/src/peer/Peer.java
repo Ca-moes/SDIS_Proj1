@@ -1,11 +1,9 @@
 package peer;
 
-import files.BackedUpFile;
-import files.FutureFile;
-import files.IOUtils;
-import files.SavedChunk;
+import files.*;
+import jobs.DeleteFile;
 import messages.*;
-import tasks.BackupChunk;
+import jobs.BackupChunk;
 
 import java.io.IOException;
 import java.net.InetAddress;
@@ -17,6 +15,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -30,7 +29,7 @@ public class Peer implements InitiatorPeer {
     private String protocolVersion;
 
     private final ExecutorService triageExecutor;
-    private final ExecutorService requestsExecutor;
+    private final ScheduledExecutorService requestsExecutor;
     private final ExecutorService acknowledgmentsExecutor;
     private final ExecutorService IOExecutor;
 
@@ -62,7 +61,7 @@ public class Peer implements InitiatorPeer {
         parseArgs(args);
 
         this.triageExecutor = Executors.newFixedThreadPool(Constants.TRIAGE_WORKERS);
-        this.requestsExecutor = Executors.newFixedThreadPool(Constants.REQUESTS_WORKERS);
+        this.requestsExecutor = Executors.newScheduledThreadPool(Constants.REQUESTS_WORKERS);
         this.acknowledgmentsExecutor = Executors.newFixedThreadPool(Constants.ACKS_WORKERS);
         this.IOExecutor = Executors.newFixedThreadPool(Constants.IO_WORKERS);
 
@@ -149,31 +148,23 @@ public class Peer implements InitiatorPeer {
             int i = 0;
             int size = 0;
             while ((buffer = file.getNextChunk()) != null) {
-                Message message = new PutchunkMessage(
-                        this.protocolVersion,
-                        this.peerId,
-                        file.getFileID(),
-                        i,
-                        replicationDegree,
-                        Arrays.copyOf(buffer, buffer.length)
-                );
                 size = buffer.length;
-                this.IOExecutor.submit(new BackupChunk(message, this, true));
+                SentChunk chunk = new SentChunk(file.getFileID(), i, replicationDegree);
+                chunk.setBody(Arrays.copyOf(buffer, buffer.length));
+                this.internalState.getSentChunksMap().put(chunk.getChunkId(), chunk);
+
                 System.out.printf("[%s] SENDING CHUNK: %d of %d\n", pathname, i+1, numberOfChunks);
+                this.IOExecutor.submit(new BackupChunk(chunk, this, 1));
                 i++;
             }
             if (size == 64000) {
                 System.out.println("FILE WITH MULTIPLE OF 64KB, SENDING AN EMPTY BODY PUTCHAR MESSAGE");
-                Message message = new PutchunkMessage(
-                        this.protocolVersion,
-                        this.peerId,
-                        file.getFileID(),
-                        i,
-                        replicationDegree,
-                        new byte[0]
-                );
-                this.IOExecutor.submit(new BackupChunk(message, this, true));
+                SentChunk chunk = new SentChunk(file.getFileID(), i, replicationDegree);
+                chunk.setBody(Arrays.copyOf(buffer, buffer.length));
+                this.internalState.getSentChunksMap().put(chunk.getChunkId(), chunk);
+
                 System.out.printf("[%s] SENDING CHUNK: %d of %d\n", pathname, i+1, numberOfChunks);
+                this.IOExecutor.submit(new BackupChunk(chunk, this, 1));
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -204,20 +195,8 @@ public class Peer implements InitiatorPeer {
         if (this.internalState.getBackedUpFilesMap().containsKey(pathname)) {
             System.out.println("[PEER] I backed up that file. Starting deletion...");
             String fileId = this.internalState.getBackedUpFilesMap().get(pathname);
-            Message message = new DeleteMessage(this.protocolVersion, this.peerId, fileId);
-            int timeout = 1000;
-            while (timeout <= 5000) {
-                try {
-                    this.multicastControl.sendMessage(message);
-                    Thread.sleep(timeout);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-                timeout += 1000;
-            }
-            System.out.println("[PEER] File Deleted");
-            this.getInternalState().deleteBackedUpEntries(pathname);
-            this.getInternalState().getDeletedFiles().add(fileId);
+
+            this.getIOExecutor().submit(new DeleteFile(this, fileId, pathname, 1));
         } else {
             System.out.println("[PEER] I have not backed up that file!");
         }
@@ -245,46 +224,11 @@ public class Peer implements InitiatorPeer {
             return;
         }
 
-        ArrayList<SavedChunk> safeDeletions = new ArrayList<>();
-        ArrayList<SavedChunk> unsafeDeletions = new ArrayList<>();
-        for (String chunkId : this.internalState.getSavedChunksMap().keySet()) {
-            SavedChunk chunk = this.internalState.getSavedChunksMap().get(chunkId);
-            if (chunk.getPeers().size() > chunk.getReplicationDegree())
-                safeDeletions.add(chunk);
-            else
-                unsafeDeletions.add(chunk);
-        }
-
         this.internalState.setCapacity(maxDiskSpace*1000);
-        this.internalState.interruptPutchunks();
-        while (this.internalState.getOccupation() > this.internalState.getCapacity() && !this.internalState.getSavedChunksMap().isEmpty()) {
-            // first remove the chunks with higher perceived replication degree than the required rep. degree
-            while (this.internalState.getOccupation() > this.internalState.getCapacity() && !safeDeletions.isEmpty()) {
-                SavedChunk chunk = safeDeletions.remove(0);
+        if (maxDiskSpace <= this.internalState.getCapacity())
+            this.internalState.interruptPutchunks();
 
-                // System.out.printf("[PEER] Safe deleting %s\n", chunk.getChunkId());
-                this.internalState.deleteChunk(chunk);
-                this.internalState.getSavedChunksMap().remove(chunk.getChunkId());
-
-                Message message = new RemovedMessage(this.protocolVersion, this.peerId, chunk.getFileId(), chunk.getChunkNo());
-                this.multicastControl.sendMessage(message);
-            }
-            System.out.printf("[PEER] Space Occupied after safe deleting: %d\n", this.internalState.getOccupation());
-            // if it got here, then it means removing the safe chunks was not enough, so it needs to proceed removing other chunks
-            while (this.internalState.getOccupation() > this.internalState.getCapacity() && !unsafeDeletions.isEmpty()) {
-                SavedChunk chunk = unsafeDeletions.remove(0);
-
-                // System.out.printf("[PEER] Unsafe deleting %s\n", chunk.getChunkId());
-                this.internalState.deleteChunk(chunk);
-                this.internalState.getSavedChunksMap().remove(chunk.getChunkId());
-
-                Message message = new RemovedMessage(this.protocolVersion, this.peerId, chunk.getFileId(), chunk.getChunkNo());
-                this.multicastControl.sendMessage(message);
-            }
-            System.out.printf("[PEER] Occupation after unsafe deleting: %d\n", this.internalState.getOccupation());
-        }
-        // time to commit to the database to register the changes made
-        this.internalState.commit();
+        this.internalState.forceFreeSpace();
     }
 
     @Override
@@ -296,7 +240,7 @@ public class Peer implements InitiatorPeer {
         return triageExecutor;
     }
 
-    public ExecutorService getRequestsExecutor() {
+    public ScheduledExecutorService getRequestsExecutor() {
         return requestsExecutor;
     }
 

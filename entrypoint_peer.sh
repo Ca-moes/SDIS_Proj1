@@ -19,7 +19,7 @@ echo "Hello I'm container $INDEX of $COUNT"
 
 mkdir -p out
 
-javac files/*.java messages/*.java peer/*.java tasks/*.java client/*.java -d ./out
+javac files/*.java messages/*.java peer/*.java tasks/*.java client/*.java jobs/*.java -d ./out
 
 cd out
 

@@ -19,6 +19,7 @@ public class PeerInternalState implements Serializable {
     // chunkId -> saved chunk
     private final ConcurrentHashMap<String, SavedChunk> savedChunksMap;
     private final ConcurrentHashMap<String, String> backedUpFilesMap;
+
     private final Set<String> deletedFiles;
 
     private static transient String PEER_DIRECTORY = "peer%d";
@@ -125,13 +126,13 @@ public class PeerInternalState implements Serializable {
 
     }
 
-    public synchronized void updateStoredConfirmation(SentChunk chunk, int replier) {
+    public void updateStoredConfirmation(SentChunk chunk, int replier) {
         if (sentChunksMap.containsKey(chunk.getChunkId())) {
             sentChunksMap.get(chunk.getChunkId()).getPeers().add(replier);
         }
     }
 
-    public synchronized void updateStoredConfirmation(SavedChunk chunk, int replier) {
+    public void updateStoredConfirmation(SavedChunk chunk, int replier) {
         if (savedChunksMap.containsKey(chunk.getChunkId())) {
             savedChunksMap.get(chunk.getChunkId()).getPeers().add(replier);
         }
@@ -173,7 +174,7 @@ public class PeerInternalState implements Serializable {
         }
 
         out.append("CAPACITY: ").append(this.capacity / 1000.0).append("KB\n");
-        out.append("OCCUPIED SPACE: ").append(this.directorySize(new File(PEER_DIRECTORY)) / 1000.0).append("KB\n");
+        out.append("OCCUPIED SPACE: ").append(this.occupation / 1000.0).append("KB\n");
         out.append("Exceeded Rate: ").append(numberOfExceeded / this.sentChunksMap.size()).append("\n");
 
         return out.toString();
@@ -228,7 +229,44 @@ public class PeerInternalState implements Serializable {
         }
     }
 
-    public void freeSpace() {
+    public void forceFreeSpace() {
+        ArrayList<SavedChunk> safeDeletions = new ArrayList<>();
+        ArrayList<SavedChunk> unsafeDeletions = new ArrayList<>();
+        for (String chunkId : this.getSavedChunksMap().keySet()) {
+            SavedChunk chunk = this.getSavedChunksMap().get(chunkId);
+            if (chunk.getPeers().size() > chunk.getReplicationDegree())
+                safeDeletions.add(chunk);
+            else
+                unsafeDeletions.add(chunk);
+        }
+
+        while (this.occupation > this.capacity && !safeDeletions.isEmpty()) {
+            SavedChunk chunk = safeDeletions.remove(0);
+
+            // System.out.printf("[PEER] Safe deleting %s\n", chunk.getChunkId());
+            this.removeChunk(chunk);
+        }
+        System.out.printf("[PEER] Occupation after safe deleting: %d\n", this.occupation);
+        while (this.occupation > this.capacity && !unsafeDeletions.isEmpty()) {
+            SavedChunk chunk = unsafeDeletions.remove(0);
+
+            // System.out.printf("[PEER] Unsafe deleting %s\n", chunk.getChunkId());
+            this.removeChunk(chunk);
+        }
+        System.out.printf("[PEER] Occupation after unsafe deleting: %d\n", this.occupation);
+    }
+
+    private void removeChunk(Chunk chunk) {
+        this.deleteChunk(chunk);
+        this.getSavedChunksMap().remove(chunk.getChunkId());
+        this.commit();
+        Message message = new RemovedMessage(this.peer.getProtocolVersion(), this.peer.getPeerId(), chunk.getFileId(), chunk.getChunkNo());
+        this.peer.getMulticastControl().sendMessage(message);
+    }
+
+    public boolean freeSpace() {
+        if (!this.acceptingRequests) return false;
+        lockRequests(false);
         System.out.println("[PIS] Trying to free some space...");
 
         ArrayList<SavedChunk> safeDeletions = new ArrayList<>();
@@ -240,13 +278,18 @@ public class PeerInternalState implements Serializable {
 
         while (!safeDeletions.isEmpty()) {
             SavedChunk chunk = safeDeletions.remove(0);
-            Message message = new RemovedMessage(this.peer.getProtocolVersion(), this.peer.getPeerId(), chunk.getFileId(), chunk.getChunkNo());
-            this.peer.getMulticastControl().sendMessage(message);
 
             System.out.printf("[PEER] Safe deleting %s\n", chunk.getChunkId());
             this.deleteChunk(chunk);
             this.getSavedChunksMap().remove(chunk.getChunkId());
+            this.commit();
+
+            //! Apparently we do not have to send a message if we are removing chunks to clear space for new chunks
+            // Message message = new RemovedMessage(this.peer.getProtocolVersion(), this.peer.getPeerId(), chunk.getFileId(), chunk.getChunkNo());
+            // this.peer.getMulticastControl().sendMessage(message);
         }
+        lockRequests(true);
+        return true;
     }
 
     public void interruptPutchunks() {
@@ -256,28 +299,24 @@ public class PeerInternalState implements Serializable {
     private void setAcceptingRequests(boolean acceptingRequests) {
         this.acceptingRequests = acceptingRequests;
         Timer timer = new Timer(true);
-        TimerTask timerTask1 = new TimerTask() {
-            @Override
-            public void run() {
-                System.out.println("[PIS] Peer is not accepting requests as of this moment.");
-            }
-        };
 
         if (acceptingRequests) {
             System.out.println("[PIS] Peer is now accepting PUTCHUNKS");
             timer.cancel();
-            timerTask1.cancel();
         } else {
-            System.out.println("[PIS] Peer is not accepting requests as of this moment, it will be available in 2 minutes");
+            System.out.println("[PIS] Peer is not accepting requests as of this moment, it will be available in 60 seconds");
             TimerTask timerTask = new TimerTask() {
                 @Override
                 public void run() {
                     setAcceptingRequests(true);
                 }
             };
-            timer.schedule(timerTask, 2*60*1000);
-            timer.scheduleAtFixedRate(timerTask1, 0, 5000);
+            timer.schedule(timerTask, 60 * 1000);
         }
+    }
+
+    private void lockRequests(boolean accepting) {
+        this.acceptingRequests = accepting;
     }
 
     public boolean isAcceptingRequests() {
@@ -285,7 +324,12 @@ public class PeerInternalState implements Serializable {
     }
 
     public long calculateOccupation() {
-        return directorySize(new File(PEER_DIRECTORY));
+        try {
+            return directorySize(new File(PEER_DIRECTORY));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return -1;
     }
 
     public void setCapacity(long capacity) {
@@ -340,16 +384,11 @@ public class PeerInternalState implements Serializable {
         return size.get();
     }
 
-    public long directorySize(File dir) {
-        /*long size = 0;
-
-        File[] files = dir.listFiles();
-        if (files != null) {
-            for (File file : files) {
-                size += (file.isFile()) ? file.length() : directorySize(file);
-            }
-        }
-        return size;*/
-        return size(dir.toPath());
+    public long directorySize(File dir) throws IOException {
+        Path folder = Paths.get(PEER_DIRECTORY);
+        return Files.walk(folder)
+                .filter(p -> p.toFile().isFile())
+                .mapToLong(p -> p.toFile().length())
+                .sum();
     }
 }

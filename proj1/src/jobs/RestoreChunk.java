@@ -1,4 +1,4 @@
-package tasks;
+package jobs;
 
 import files.SentChunk;
 import messages.GetchunkMessage;
