@@ -1,6 +1,7 @@
 package peer;
 
 import files.*;
+import jobs.DeleteFile;
 import messages.*;
 import jobs.BackupChunk;
 
@@ -194,20 +195,8 @@ public class Peer implements InitiatorPeer {
         if (this.internalState.getBackedUpFilesMap().containsKey(pathname)) {
             System.out.println("[PEER] I backed up that file. Starting deletion...");
             String fileId = this.internalState.getBackedUpFilesMap().get(pathname);
-            Message message = new DeleteMessage(this.protocolVersion, this.peerId, fileId);
-            int timeout = 1000;
-            while (timeout <= 5000) {
-                try {
-                    this.multicastControl.sendMessage(message);
-                    Thread.sleep(timeout);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-                timeout += 1000;
-            }
-            System.out.println("[PEER] File Deleted");
-            this.getInternalState().deleteBackedUpEntries(pathname);
-            this.getInternalState().getDeletedFiles().add(fileId);
+
+            this.getIOExecutor().submit(new DeleteFile(this, fileId, pathname, 1));
         } else {
             System.out.println("[PEER] I have not backed up that file!");
         }
