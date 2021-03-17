@@ -1,10 +1,7 @@
 package tasks;
 
 import files.Chunk;
-import jobs.BackupChunk;
 import jobs.ReBackupChunk;
-import messages.Message;
-import messages.PutchunkMessage;
 import messages.RemovedMessage;
 import peer.Peer;
 

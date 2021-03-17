@@ -1,18 +1,13 @@
 package files;
 
+import jobs.RestoreChunk;
 import peer.Constants;
 import peer.Peer;
-import jobs.RestoreChunk;
 
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.RandomAccessFile;
-import java.nio.channels.AsynchronousFileChannel;
-import java.nio.channels.FileChannel;
-import java.nio.file.OpenOption;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;

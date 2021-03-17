@@ -2,9 +2,7 @@ package tasks;
 
 import files.SavedChunk;
 import jobs.SendChunk;
-import messages.ChunkMessage;
 import messages.GetchunkMessage;
-import messages.Message;
 import peer.Peer;
 
 import java.util.concurrent.TimeUnit;
