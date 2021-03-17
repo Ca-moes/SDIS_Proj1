@@ -11,6 +11,7 @@ public abstract class Chunk implements Serializable {
     protected final Set<Integer> peers;
     protected transient byte[] body;
     protected boolean receivedPutchunk = false;
+    private boolean stored = false;
 
     public boolean receivedPutchunk() {
         return receivedPutchunk;
@@ -85,5 +86,13 @@ public abstract class Chunk implements Serializable {
 
     public Set<Integer> getPeers() {
         return peers;
+    }
+
+    public boolean isStored() {
+        return this.stored;
+    }
+    
+    public void setStored(boolean stored) {
+        this.stored = stored;
     }
 }

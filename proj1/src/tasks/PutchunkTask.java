@@ -1,10 +1,13 @@
 package tasks;
 
 import files.SavedChunk;
+import jobs.SendStoredChunk;
 import messages.Message;
 import messages.PutchunkMessage;
 import messages.StoredMessage;
 import peer.Peer;
+
+import java.util.concurrent.TimeUnit;
 
 public class PutchunkTask extends Task {
     public PutchunkTask(PutchunkMessage message, Peer peer) {
@@ -22,11 +25,10 @@ public class PutchunkTask extends Task {
             return;
         }
 
-        if (this.peer.getInternalState().getSavedChunksMap().containsKey(chunk.getChunkId())) {
+        if (chunk.isStored() && this.peer.getInternalState().getSavedChunksMap().containsKey(chunk.getChunkId())) {
             // This peer has this chunk but it will send a reply anyways cause it indicates that it has saved the chunk (UDP unreliability)
             chunk.setReceivedPutchunk(true);
-            sleep();
-            peer.getMulticastControl().sendMessage(reply);
+            peer.getRequestsExecutor().schedule(new SendStoredChunk(chunk, peer, reply), this.getSleepTime(), TimeUnit.MILLISECONDS);
         } else if (!this.peer.getInternalState().getSentChunksMap().containsKey(chunk.getChunkId())) {
             if (chunk.getBody().length + this.peer.getInternalState().getOccupation() > this.peer.getInternalState().getCapacity()) {
                 // I dont have the storage needed to backup that, i'm afraid
@@ -34,26 +36,7 @@ public class PutchunkTask extends Task {
                 return;
             }
             peer.getInternalState().getSavedChunksMap().put(chunk.getChunkId(), chunk);
-            chunk.getPeers().add(peer.getPeerId());
-
-            sleep();
-
-            if (chunk.getPeers().size() < chunk.getReplicationDegree()) {
-                if (chunk.getBody().length + this.peer.getInternalState().getOccupation() < this.peer.getInternalState().getCapacity()) {
-                    // This peer will save the chunk locally
-                    peer.getMulticastControl().sendMessage(reply);
-                    peer.getInternalState().storeChunk(chunk);
-                    peer.getInternalState().commit();
-                } else {
-                    System.out.printf("[PEER] Not enough space for %s\n", chunk.getChunkId());
-                    return;
-                }
-            } else {
-                // no need to backup here as it is already being backed up and it wont reply with STORED
-                peer.getInternalState().getSavedChunksMap().remove(chunk.getChunkId());
-            }
-
-            chunk.setReceivedPutchunk(false);
+            peer.getRequestsExecutor().schedule(new SendStoredChunk(chunk, peer, reply), this.getSleepTime(), TimeUnit.MILLISECONDS);
         }
     }
 }

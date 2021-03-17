@@ -1,6 +1,7 @@
 package tasks;
 
 import files.Chunk;
+import jobs.BackupChunk;
 import messages.Message;
 import messages.PutchunkMessage;
 import messages.RemovedMessage;

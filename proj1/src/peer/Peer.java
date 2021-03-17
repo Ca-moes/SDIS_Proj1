@@ -5,7 +5,7 @@ import files.FutureFile;
 import files.IOUtils;
 import files.SavedChunk;
 import messages.*;
-import tasks.BackupChunk;
+import jobs.BackupChunk;
 
 import java.io.IOException;
 import java.net.InetAddress;
@@ -17,6 +17,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -30,7 +31,7 @@ public class Peer implements InitiatorPeer {
     private String protocolVersion;
 
     private final ExecutorService triageExecutor;
-    private final ExecutorService requestsExecutor;
+    private final ScheduledExecutorService requestsExecutor;
     private final ExecutorService acknowledgmentsExecutor;
     private final ExecutorService IOExecutor;
 
@@ -62,7 +63,7 @@ public class Peer implements InitiatorPeer {
         parseArgs(args);
 
         this.triageExecutor = Executors.newFixedThreadPool(Constants.TRIAGE_WORKERS);
-        this.requestsExecutor = Executors.newFixedThreadPool(Constants.REQUESTS_WORKERS);
+        this.requestsExecutor = Executors.newScheduledThreadPool(Constants.REQUESTS_WORKERS);
         this.acknowledgmentsExecutor = Executors.newFixedThreadPool(Constants.ACKS_WORKERS);
         this.IOExecutor = Executors.newFixedThreadPool(Constants.IO_WORKERS);
 
@@ -296,7 +297,7 @@ public class Peer implements InitiatorPeer {
         return triageExecutor;
     }
 
-    public ExecutorService getRequestsExecutor() {
+    public ScheduledExecutorService getRequestsExecutor() {
         return requestsExecutor;
     }
 

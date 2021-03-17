@@ -1,4 +1,4 @@
-package tasks;
+package jobs;
 
 import files.Chunk;
 import files.SentChunk;

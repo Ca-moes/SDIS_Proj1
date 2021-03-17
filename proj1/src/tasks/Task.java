@@ -24,6 +24,11 @@ public abstract class Task implements Runnable {
         }
     }
 
+    protected int getSleepTime() {
+        int lowerBound = (int) Math.sin((double) peer.getInternalState().calculateOccupation() / peer.getInternalState().getCapacity() * 1.5) * 400;
+        return ThreadLocalRandom.current().nextInt(lowerBound, 401);
+    }
+
     private void enhancedSleep(int lowerBound) throws InterruptedException {
         int sleep = ThreadLocalRandom.current().nextInt(lowerBound, 401);
         //System.out.printf("[%s] - (lower-%d) sleeping for %3d ms%n", message.getType(), lowerBound, sleep);
