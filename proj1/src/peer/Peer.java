@@ -34,6 +34,8 @@ public class Peer implements InitiatorPeer {
     private final ExecutorService acknowledgmentsExecutor;
     private final ExecutorService IOExecutor;
 
+    private final InetAddress address;
+
     private final PeerInternalState internalState;
 
     public static void main(String[] args) throws Exception {
@@ -65,6 +67,8 @@ public class Peer implements InitiatorPeer {
         this.requestsExecutor = Executors.newScheduledThreadPool(Constants.REQUESTS_WORKERS);
         this.acknowledgmentsExecutor = Executors.newFixedThreadPool(Constants.ACKS_WORKERS);
         this.IOExecutor = Executors.newFixedThreadPool(Constants.IO_WORKERS);
+
+        this.address = InetAddress.getLocalHost();
 
         this.internalState = PeerInternalState.loadInternalState(this);
     }
@@ -235,6 +239,10 @@ public class Peer implements InitiatorPeer {
     @Override
     public String state() throws RemoteException {
         return this.internalState.toString();
+    }
+
+    public InetAddress getAddress() {
+        return address;
     }
 
     public ExecutorService getTriageExecutor() {

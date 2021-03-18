@@ -3,6 +3,7 @@ package messages;
 import peer.Peer;
 import tasks.Task;
 
+import java.net.InetAddress;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Objects;
@@ -74,6 +75,10 @@ public abstract class Message {
             default:
                 throw new Exception("COULD NOT PARSE MESSAGE PACKET");
         }
+    }
+
+    public static byte[] addressPortToBytes(InetAddress address, int port) {
+        return String.format("%s:%d", address.getHostAddress(), port).getBytes(StandardCharsets.UTF_8);
     }
 
     public byte[] encodeToSend() {

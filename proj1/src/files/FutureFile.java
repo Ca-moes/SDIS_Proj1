@@ -71,8 +71,6 @@ public class FutureFile {
                 return;
             }
 
-            System.out.printf("[PEER] Received Chunk - %s\n", chunk.getChunkId());
-
             randomAccessFile.seek(chunk.getChunkNo() * 64000L);
             randomAccessFile.write(chunk.getBody());
 

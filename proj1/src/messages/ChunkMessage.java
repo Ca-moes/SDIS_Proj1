@@ -4,12 +4,40 @@ import peer.Peer;
 import tasks.ChunkTask;
 import tasks.Task;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.ExecutorService;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class ChunkMessage extends Message {
+    private InetAddress address;
+    private int port;
+
     public ChunkMessage(String protocolVersion, int senderId, String fileId, int chunkNo, byte[] body) {
         super(protocolVersion, "CHUNK", senderId, fileId, chunkNo, 0, body);
+
+        if (!protocolVersion.equals("1.0")) {
+            Pattern p = Pattern.compile("^\\s*(.*?):(\\d+)\\s*$");
+            Matcher m = p.matcher(new String(body));
+            if (m.matches()) {
+                try {
+                    address = InetAddress.getByName(m.group(1));
+                    port = Integer.parseInt(m.group(2));
+                } catch (UnknownHostException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+
+    public int getPort() {
+        return port;
+    }
+
+    public InetAddress getAddress() {
+        return address;
     }
 
     @Override
