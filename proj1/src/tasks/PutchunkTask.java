@@ -37,7 +37,7 @@ public class PutchunkTask extends Task {
                     // it will now check again if there's enough space to store the chunk
                     if (chunk.getBody().length + this.peer.getInternalState().getOccupation() > this.peer.getInternalState().getCapacity()) {
                         // I dont have the storage needed to backup that, i'm afraid
-                        System.out.printf("[PEER] Not enough space for %s\n", chunk.getChunkId());
+                        System.out.printf("[PIS] Not enough space for %s\n", chunk.getChunkId());
                     } else {
                         // it has enough space and it will store the message
                         peer.getInternalState().getSavedChunksMap().put(chunk.getChunkId(), chunk);
@@ -45,7 +45,7 @@ public class PutchunkTask extends Task {
                     }
                 } else {
                     // couldn't try to free space, maybe some other putchunk process is trying to
-                    System.out.printf("[PEER] Not enough space for %s\n", chunk.getChunkId());
+                    System.out.printf("[PIS] Not enough space for %s\n", chunk.getChunkId());
                 }
             } else {
                 // there's enough space, wont even try to free some

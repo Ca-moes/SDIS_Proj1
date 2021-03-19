@@ -1,11 +1,16 @@
 package peer;
 
 import files.*;
-import jobs.DeleteFile;
-import messages.*;
 import jobs.BackupChunk;
+import jobs.DeleteFile;
+import messages.Message;
+import messages.MulticastService;
+import messages.RemovedMessage;
+import tasks.StoredTask;
+import tasks.Task;
 
 import java.io.IOException;
+import java.lang.reflect.Executable;
 import java.net.InetAddress;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
@@ -13,8 +18,10 @@ import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -32,6 +39,8 @@ public class Peer implements InitiatorPeer {
     private final ScheduledExecutorService requestsExecutor;
     private final ExecutorService acknowledgmentsExecutor;
     private final ExecutorService IOExecutor;
+
+    private final InetAddress address;
 
     private final PeerInternalState internalState;
 
@@ -65,6 +74,8 @@ public class Peer implements InitiatorPeer {
         this.acknowledgmentsExecutor = Executors.newFixedThreadPool(Constants.ACKS_WORKERS);
         this.IOExecutor = Executors.newFixedThreadPool(Constants.IO_WORKERS);
 
+        this.address = InetAddress.getLocalHost();
+
         this.internalState = PeerInternalState.loadInternalState(this);
     }
 
@@ -73,7 +84,14 @@ public class Peer implements InitiatorPeer {
         new Thread(this.multicastDataBackup).start();
         new Thread(this.multicastDataRestore).start();
 
-        System.out.printf("PEER %s IS LIVE!\n", this.peerId);
+        System.out.printf("-- PEER %s IS LIVE!\n", this.peerId);
+
+        System.out.printf("[PEER] Saved Chunks: %d\n", this.internalState.getSavedChunksMap().size());
+        System.out.printf("[PEER] Sent Chunks: %d\n", this.internalState.getSentChunksMap().size());
+        System.out.printf("[PEER] Backed Up Files: %d\n", this.internalState.getBackedUpFilesMap().size());
+        System.out.printf("[PEER] Occupation: %fKB\n", this.internalState.calculateOccupation() / 1000.0);
+        System.out.printf("[PEER] Capacity: %fKB\n", this.internalState.getCapacity() / 1000.0);
+        System.out.printf("[PEER] Version: %s\n", this.protocolVersion);
     }
 
     private void parseArgs(String[] args) throws IOException {
@@ -160,7 +178,7 @@ public class Peer implements InitiatorPeer {
             if (size == 64000) {
                 System.out.println("FILE WITH MULTIPLE OF 64KB, SENDING AN EMPTY BODY PUTCHAR MESSAGE");
                 SentChunk chunk = new SentChunk(file.getFileID(), i, replicationDegree);
-                chunk.setBody(Arrays.copyOf(buffer, buffer.length));
+                chunk.setBody(new byte[0]);
                 this.internalState.getSentChunksMap().put(chunk.getChunkId(), chunk);
 
                 System.out.printf("[%s] SENDING CHUNK: %d of %d\n", pathname, i+1, numberOfChunks);
@@ -234,6 +252,14 @@ public class Peer implements InitiatorPeer {
     @Override
     public String state() throws RemoteException {
         return this.internalState.toString();
+    }
+
+    public boolean isEnhanced() {
+        return !protocolVersion.equals("1.0");
+    }
+
+    public InetAddress getAddress() {
+        return address;
     }
 
     public ExecutorService getTriageExecutor() {

@@ -2,9 +2,7 @@ package tasks;
 
 import files.SavedChunk;
 import jobs.SendChunk;
-import messages.ChunkMessage;
 import messages.GetchunkMessage;
-import messages.Message;
 import peer.Peer;
 
 import java.util.concurrent.TimeUnit;
@@ -38,6 +36,6 @@ public class GetchunkTask extends Task {
         chunk.setAlreadyProvided(false);
 
         int timeout = getSleepTime();
-        this.peer.getRequestsExecutor().schedule(new SendChunk(chunk, peer), timeout, TimeUnit.MILLISECONDS);
+        this.peer.getRequestsExecutor().schedule(new SendChunk((GetchunkMessage) message, chunk, peer), timeout, TimeUnit.MILLISECONDS);
     }
 }
