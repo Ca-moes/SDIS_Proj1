@@ -20,7 +20,7 @@ public class ReceiveStoredChunk implements Runnable {
             this.peer.getIOExecutor().submit(new BackupChunk(chunk, peer, timeout*2));
         } else {
             this.peer.getInternalState().commit();
-            System.out.println("[PEER] Chunk Backed Up - " + chunk.getChunkId());
+            System.out.println("[BACKUP] Chunk Backed Up - " + chunk.getChunkId());
         }
     }
 }

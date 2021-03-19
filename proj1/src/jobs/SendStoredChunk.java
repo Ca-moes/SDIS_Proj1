@@ -31,9 +31,9 @@ public class SendStoredChunk implements Runnable {
                     chunk.setStored(true);
                     chunk.getPeers().add(peer.getPeerId());
                     peer.getInternalState().commit();
-                    System.out.printf("[PUTCHUNK] Saved chunk %s\n", chunk.getChunkId());
+                    System.out.printf("[BACKUP] Saved chunk %s\n", chunk.getChunkId());
                 } else {
-                    System.out.printf("[PEER] Not enough space for %s\n", chunk.getChunkId());
+                    System.out.printf("[PIS] Not enough space for %s\n", chunk.getChunkId());
                 }
             } else {
                 // no need to backup here as it is already being backed up and it wont reply with STORED

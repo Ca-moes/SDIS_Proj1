@@ -2,6 +2,7 @@ package jobs;
 
 import files.SavedChunk;
 import messages.ChunkMessage;
+import messages.GetchunkMessage;
 import messages.Message;
 import peer.Peer;
 
@@ -11,10 +12,12 @@ import java.net.ServerSocket;
 import java.net.Socket;
 
 public class SendChunk implements Runnable {
+    private final GetchunkMessage message;
     private final SavedChunk chunk;
     private final Peer peer;
 
-    public SendChunk(SavedChunk chunk, Peer peer) {
+    public SendChunk(GetchunkMessage message, SavedChunk chunk, Peer peer) {
+        this.message = message;
         this.chunk = chunk;
         this.peer = peer;
     }
@@ -31,7 +34,7 @@ public class SendChunk implements Runnable {
         }
 
         Message message;
-        if (this.peer.getProtocolVersion().equals("1.0")) {
+        if (!this.peer.isEnhanced() || !this.message.isEnhanced()) {
             message = new ChunkMessage(this.peer.getProtocolVersion(), this.peer.getPeerId(), chunk.getFileId(), chunk.getChunkNo(), chunk.getBody());
             this.peer.getMulticastDataRestore().sendMessage(message);
             // no need to keep the body in memory
@@ -58,7 +61,14 @@ public class SendChunk implements Runnable {
                 chunk.setBeingHandled(false);
                 System.out.printf("[GETCHUNK] [TCP] Sent %s\n", chunk.getChunkId());
             } catch (IOException e) {
-                e.printStackTrace();
+                System.out.printf("[GETCHUNK] [TCP] Failed for chunk: %s\nFalling back to vanilla protocol...\n", chunk.getChunkId());
+                message = new ChunkMessage(this.peer.getProtocolVersion(), this.peer.getPeerId(), chunk.getFileId(), chunk.getChunkNo(), chunk.getBody());
+                this.peer.getMulticastDataRestore().sendMessage(message);
+                // no need to keep the body in memory
+                int bytes = chunk.getBody().length;
+                chunk.clearBody();
+                chunk.setBeingHandled(false);
+                System.out.printf("[GETCHUNK] Sent %s : %d bytes\n", chunk.getChunkId(), bytes);
             }
         }
     }

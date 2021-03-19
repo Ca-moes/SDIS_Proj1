@@ -27,7 +27,7 @@ public class RestoreChunk implements Callable<SentChunk> {
         do {
             this.peer.getMulticastControl().sendMessage(message);
             Thread.sleep(i* 1000L);
-            if (!peer.getProtocolVersion().equals("1.0") && chunk.isReceivingData() && !chunk.connectionFailed()) {
+            if (peer.isEnhanced() && chunk.isReceivingData() && !chunk.connectionFailed()) {
                 // wait just a bit longer
                 Thread.sleep(1000);
             }

@@ -81,6 +81,10 @@ public abstract class Message {
         return String.format("%s:%d", address.getHostAddress(), port).getBytes(StandardCharsets.UTF_8);
     }
 
+    public boolean isEnhanced() {
+        return !protocolVersion.equals("1.0");
+    }
+
     public byte[] encodeToSend() {
         return String.format("%s %s %d %s %d %d \r\n\r\n",
                 this.protocolVersion,
