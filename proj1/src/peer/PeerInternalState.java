@@ -155,46 +155,35 @@ public class PeerInternalState implements Serializable {
     @Override
     public String toString() {
         StringBuilder ret = new StringBuilder();
-        ret.append(String.format("--- PEER %d REPORT ---\n", peer.getPeerId()));
+        ret.append(String.format("-------------- PEER %d REPORT --------------\n", peer.getPeerId()));
         ret.append("-- Backup Files --\n");
         for (String pathname : this.backedUpFilesMap.keySet()) {
             ServerFile file = this.backedUpFilesMap.get(pathname);
             ret.append(file).append("\n");
+
+            List<SentChunk> chunks = new ArrayList<>();
+
             for (String chunkId : this.sentChunksMap.keySet()) {
                 SentChunk chunk = this.sentChunksMap.get(chunkId);
                 if (chunk.getFileId().equals(file.getFileId()))
-                    ret.append("\t").append(chunk).append("\n");
+                    chunks.add(chunk);
+            }
+            chunks.sort(Comparator.comparingInt(Chunk::getChunkNo));
+            for (SentChunk chunk : chunks) {
+                ret.append("\t").append(chunk).append("\n");
             }
         }
+        ret.append("-- Saved Chunks --\n");
+        for (String chunkId : this.savedChunksMap.keySet()) {
+            SavedChunk chunk = this.savedChunksMap.get(chunkId);
+            ret.append(chunk).append("\n");
+        }
+        ret.append("----- Storage -----").append("\n");
+        ret.append(String.format("Capacity: %.2fKB\n", this.capacity / 1000.0));
+        ret.append(String.format("Occupation: %.2fKB\n", this.occupation / 1000.0));
+        ret.append("-------------- END OF REPORT --------------").append("\n");
 
         return ret.toString();
-
-        /*StringBuilder out = new StringBuilder("BACKED FILES MAP\n");
-        out.append(this.backedUpFilesMap);
-
-        out.append("\nSAVED CHUNKS MAP");
-        for (String chunkId : this.savedChunksMap.keySet()) {
-            out.append(this.savedChunksMap.get(chunkId));
-        }
-        out.append("\nSENT CHUNKS MAP");
-
-        double numberOfExceeded = 0;
-
-        for (String chunkId : this.sentChunksMap.keySet()) {
-            out.append(this.sentChunksMap.get(chunkId));
-            if (this.sentChunksMap.get(chunkId).getPeers().size() > this.sentChunksMap.get(chunkId).getReplicationDegree())
-                numberOfExceeded += 1;
-        }
-        out.append("\nDELETED FILES HASHMAP\n");
-        for (String fileId : this.deletedFiles) {
-            out.append(fileId).append("\n");
-        }
-
-        out.append("CAPACITY: ").append(this.capacity / 1000.0).append("KB\n");
-        out.append("OCCUPIED SPACE: ").append(this.occupation / 1000.0).append("KB\n");
-        out.append("Exceeded Rate: ").append(numberOfExceeded / this.sentChunksMap.size()).append("\n");
-
-        return out.toString();*/
     }
 
     public void deleteChunk(Chunk chunk) {

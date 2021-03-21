@@ -8,7 +8,7 @@ public class SavedChunk extends Chunk implements Serializable {
 
     public SavedChunk(String fileId, int chunkNo, int replicationDegree, byte[] body) {
         super(fileId, chunkNo, replicationDegree);
-        this.body = body;
+        this.setBody(body);
     }
 
     public SavedChunk(String fileId, int chunkNo) {
@@ -23,12 +23,7 @@ public class SavedChunk extends Chunk implements Serializable {
 
     @Override
     public String toString() {
-        return "\nSavedChunk{" +
-                "fileId='" + fileId + '\'' +
-                ", chunkNo=" + chunkNo +
-                ", replicationDegree=" + replicationDegree +
-                ", peers=" + peers +
-                '}';
+        return String.format("[SavedChunk] FileID: %s | ChunkNo: %-4d | Desired Replication Degree: %d | Perceived Replication Degree: %d | Size: %.2fKB", fileId, chunkNo, replicationDegree, peers.size(), getSize());
     }
 
     public void setBeingHandled(boolean beingHandled) {
