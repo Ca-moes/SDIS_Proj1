@@ -92,7 +92,10 @@ public class Peer implements InitiatorPeer {
         System.out.printf("[PEER] Backed Up Files: %d\n", this.internalState.getBackedUpFilesMap().size());
         System.out.printf("[PEER] Occupation: %fKB\n", this.internalState.calculateOccupation() / 1000.0);
         System.out.printf("[PEER] Capacity: %fKB\n", this.internalState.getCapacity() / 1000.0);
-        System.out.printf("[PEER] Version: %s\n", this.protocolVersion);
+
+        String version = this.protocolVersion + ((this.isEnhanced()) ? " - ENHANCED" : "");
+
+        System.out.println("[PEER] Version: " + version);
     }
 
     private void parseArgs(String[] args) throws IOException {
