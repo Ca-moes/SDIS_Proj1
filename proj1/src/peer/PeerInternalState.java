@@ -7,11 +7,11 @@ import messages.Message;
 import messages.RemovedMessage;
 
 import java.io.*;
-import java.nio.file.*;
-import java.nio.file.attribute.BasicFileAttributes;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicLong;
 
 public class PeerInternalState implements Serializable {
     // chunkId -> sent chunk
@@ -53,7 +53,7 @@ public class PeerInternalState implements Serializable {
             inputStream.close();
             objectIn.close();
         } catch (IOException | ClassNotFoundException e) {
-            System.out.println("[PIS] - Couldn't Load Database. Creating one now...");
+            System.out.println("[PIS] Couldn't Load Database. Creating one now...");
         }
 
         if (peerInternalState == null) {
@@ -72,18 +72,18 @@ public class PeerInternalState implements Serializable {
         // create dir if it does not exist
         if (!directory.exists())
             if (!directory.mkdir()) {
-                System.out.println("[PIS] - Directory doesn't exist but could not be created");
+                System.out.println("[PIS] Directory doesn't exist but could not be created");
                 return;
             }
         try {
             new File(DB_FILENAME).createNewFile();
         } catch (IOException e) {
-            System.out.println("[PIS] - Could not load/create database file");
+            System.out.println("[PIS] Could not load/create database file");
             e.printStackTrace();
             return;
         }
         this.updateOccupation();
-        System.out.println("[PIS] - Database Loaded/Created Successfully");
+        System.out.println("[PIS] Database Loaded/Created Successfully");
     }
 
     public void commit() {
@@ -120,7 +120,7 @@ public class PeerInternalState implements Serializable {
 
             updateOccupation();
         } catch (IOException i) {
-            System.out.println("[PIS] - Couldn't Save chunk " + chunk.getChunkId() + " on this peer");
+            System.out.println("[PIS] Couldn't Save chunk " + chunk.getChunkId());
             i.printStackTrace();
         }
 
@@ -246,14 +246,14 @@ public class PeerInternalState implements Serializable {
             // System.out.printf("[PEER] Safe deleting %s\n", chunk.getChunkId());
             this.removeChunk(chunk);
         }
-        System.out.printf("[PEER] Occupation after safe deleting: %d\n", this.occupation);
+        System.out.printf("[PIS] Occupation after safe deleting: %d\n", this.occupation);
         while (this.occupation > this.capacity && !unsafeDeletions.isEmpty()) {
             SavedChunk chunk = unsafeDeletions.remove(0);
 
             // System.out.printf("[PEER] Unsafe deleting %s\n", chunk.getChunkId());
             this.removeChunk(chunk);
         }
-        System.out.printf("[PEER] Occupation after unsafe deleting: %d\n", this.occupation);
+        System.out.printf("[PIS] Occupation after unsafe deleting: %d\n", this.occupation);
     }
 
     private void removeChunk(Chunk chunk) {
@@ -279,7 +279,7 @@ public class PeerInternalState implements Serializable {
         while (!safeDeletions.isEmpty()) {
             SavedChunk chunk = safeDeletions.remove(0);
 
-            System.out.printf("[PEER] Safe deleting %s\n", chunk.getChunkId());
+            System.out.printf("[PIS] Safe deleting %s\n", chunk.getChunkId());
             this.deleteChunk(chunk);
             this.getSavedChunksMap().remove(chunk.getChunkId());
             this.commit();

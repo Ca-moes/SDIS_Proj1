@@ -48,8 +48,8 @@ public class Peer implements InitiatorPeer {
         if (args.length != 6) {
             System.out.println("Usage: java Peer <MC> <MDB> <MDR> <Protocol Version> <Peer ID> <Service Access Point>");
             System.out.println("MC MDB MDR: <IP>");
-            System.out.println("Service Access Point: ???");
-            throw new Exception("Invalid Arguments Number");
+            System.out.println("Service Access Point: RMI bind");
+            return;
         }
 
         Peer peer = new Peer(args);
@@ -57,10 +57,11 @@ public class Peer implements InitiatorPeer {
             InitiatorPeer stub = (InitiatorPeer) UnicastRemoteObject.exportObject(peer, 0);
             Registry registry = LocateRegistry.getRegistry();
             registry.rebind(peer.getServiceAccessPoint(), stub);
-            System.err.println("[PEER] - RMI registry complete");
+            System.err.println("[RMI] Registry Complete");
+            System.err.println("[RMI] Service Access Point: " + peer.getServiceAccessPoint());
         } catch (Exception e) {
-            System.err.println("[PEER] - RMI registry exception: " + e.toString());
-            e.printStackTrace();
+            System.err.println("[RMI] Registry Exception: " + e.getCause());
+            System.out.println("[PEER] Will continue but RMI is offline");
         }
 
         peer.start();
@@ -84,7 +85,7 @@ public class Peer implements InitiatorPeer {
         new Thread(this.multicastDataBackup).start();
         new Thread(this.multicastDataRestore).start();
 
-        System.out.printf("-- PEER %s IS LIVE!\n", this.peerId);
+        System.out.printf("[PEER] Peer with ID:%d IS LIVE!\n", this.peerId);
 
         System.out.printf("[PEER] Saved Chunks: %d\n", this.internalState.getSavedChunksMap().size());
         System.out.printf("[PEER] Sent Chunks: %d\n", this.internalState.getSentChunksMap().size());
@@ -152,8 +153,8 @@ public class Peer implements InitiatorPeer {
 
     @Override
     public void backup(String pathname, int replicationDegree) throws RemoteException {
-        System.out.println("BACKUP PROTOCOL");
-        System.out.printf("Pathname: %s | Replication Degree: %d\n", pathname, replicationDegree);
+        System.out.println("[CLIENT] BACKUP PROTOCOL");
+        System.out.printf("[CLIENT] Pathname: %s | Replication Degree: %d\n", pathname, replicationDegree);
 
         int numberOfChunks = IOUtils.getNumberOfChunks(pathname);
 
@@ -191,8 +192,8 @@ public class Peer implements InitiatorPeer {
 
     @Override
     public void restore(String pathname) throws RemoteException {
-        System.out.println("RESTORE PROTOCOL");
-        System.out.printf("Pathname: %s\n", pathname);
+        System.out.println("[CLIENT] RESTORE PROTOCOL");
+        System.out.printf("[CLIENT] Pathname: %s\n", pathname);
 
         if (this.internalState.getBackedUpFilesMap().containsKey(pathname)) {
             System.out.println("[PEER] I backed up that file. Starting restoration...");
@@ -207,8 +208,8 @@ public class Peer implements InitiatorPeer {
 
     @Override
     public void delete(String pathname) throws RemoteException {
-        System.out.println("DELETE PROTOCOL");
-        System.out.printf("Pathname: %s\n", pathname);
+        System.out.println("[CLIENT] DELETE PROTOCOL");
+        System.out.printf("[CLIENT] Pathname: %s\n", pathname);
 
         if (this.internalState.getBackedUpFilesMap().containsKey(pathname)) {
             System.out.println("[PEER] I backed up that file. Starting deletion...");
