@@ -3,6 +3,7 @@ package peer;
 import files.Chunk;
 import files.SavedChunk;
 import files.SentChunk;
+import files.ServerFile;
 import messages.Message;
 import messages.RemovedMessage;
 
@@ -18,7 +19,7 @@ public class PeerInternalState implements Serializable {
     private final ConcurrentHashMap<String, SentChunk> sentChunksMap;
     // chunkId -> saved chunk
     private final ConcurrentHashMap<String, SavedChunk> savedChunksMap;
-    private final ConcurrentHashMap<String, String> backedUpFilesMap;
+    private final ConcurrentHashMap<String, ServerFile> backedUpFilesMap;
 
     private final Set<String> deletedFiles;
 
@@ -147,13 +148,28 @@ public class PeerInternalState implements Serializable {
         return savedChunksMap;
     }
 
-    public ConcurrentHashMap<String, String> getBackedUpFilesMap() {
+    public ConcurrentHashMap<String, ServerFile> getBackedUpFilesMap() {
         return backedUpFilesMap;
     }
 
     @Override
     public String toString() {
-        StringBuilder out = new StringBuilder("BACKED FILES MAP\n");
+        StringBuilder ret = new StringBuilder();
+        ret.append(String.format("--- PEER %d REPORT ---\n", peer.getPeerId()));
+        ret.append("-- Backup Files --\n");
+        for (String pathname : this.backedUpFilesMap.keySet()) {
+            ServerFile file = this.backedUpFilesMap.get(pathname);
+            ret.append(file).append("\n");
+            for (String chunkId : this.sentChunksMap.keySet()) {
+                SentChunk chunk = this.sentChunksMap.get(chunkId);
+                if (chunk.getFileId().equals(file.getFileId()))
+                    ret.append("\t").append(chunk).append("\n");
+            }
+        }
+
+        return ret.toString();
+
+        /*StringBuilder out = new StringBuilder("BACKED FILES MAP\n");
         out.append(this.backedUpFilesMap);
 
         out.append("\nSAVED CHUNKS MAP");
@@ -178,7 +194,7 @@ public class PeerInternalState implements Serializable {
         out.append("OCCUPIED SPACE: ").append(this.occupation / 1000.0).append("KB\n");
         out.append("Exceeded Rate: ").append(numberOfExceeded / this.sentChunksMap.size()).append("\n");
 
-        return out.toString();
+        return out.toString();*/
     }
 
     public void deleteChunk(Chunk chunk) {
@@ -204,7 +220,7 @@ public class PeerInternalState implements Serializable {
     }
 
     public void deleteBackedUpEntries(String pathname) {
-        String fileId = this.backedUpFilesMap.remove(pathname);
+        String fileId = this.backedUpFilesMap.remove(pathname).getFileId();
         for (String chunkId : this.sentChunksMap.keySet()) {
             SentChunk chunk = this.sentChunksMap.get(chunkId);
             if (chunk.getFileId().equals(fileId)) {

@@ -90,8 +90,8 @@ public class Peer implements InitiatorPeer {
         System.out.printf("[PEER] Saved Chunks: %d\n", this.internalState.getSavedChunksMap().size());
         System.out.printf("[PEER] Sent Chunks: %d\n", this.internalState.getSentChunksMap().size());
         System.out.printf("[PEER] Backed Up Files: %d\n", this.internalState.getBackedUpFilesMap().size());
-        System.out.printf("[PEER] Occupation: %fKB\n", this.internalState.calculateOccupation() / 1000.0);
-        System.out.printf("[PEER] Capacity: %fKB\n", this.internalState.getCapacity() / 1000.0);
+        System.out.printf("[PEER] Occupation: %.2fKB\n", this.internalState.calculateOccupation() / 1000.0);
+        System.out.printf("[PEER] Capacity: %.2fKB\n", this.internalState.getCapacity() / 1000.0);
 
         String version = this.protocolVersion + ((this.isEnhanced()) ? " - ENHANCED" : "");
 
@@ -163,7 +163,7 @@ public class Peer implements InitiatorPeer {
 
         try {
             BackedUpFile file = new BackedUpFile(pathname);
-            this.getInternalState().getBackedUpFilesMap().put(pathname, file.getFileID());
+            this.getInternalState().getBackedUpFilesMap().put(pathname, new ServerFile(pathname, file.getFileID(), replicationDegree, IOUtils.getSize(pathname)));
             this.getInternalState().commit();
 
             byte[] buffer;
@@ -200,7 +200,7 @@ public class Peer implements InitiatorPeer {
 
         if (this.internalState.getBackedUpFilesMap().containsKey(pathname)) {
             System.out.println("[PEER] I backed up that file. Starting restoration...");
-            String fileId = this.internalState.getBackedUpFilesMap().get(pathname);
+            String fileId = this.internalState.getBackedUpFilesMap().get(pathname).getFileId();
 
             FutureFile futureFile = new FutureFile(fileId, pathname, this);
             futureFile.restoreFile();
@@ -216,7 +216,7 @@ public class Peer implements InitiatorPeer {
 
         if (this.internalState.getBackedUpFilesMap().containsKey(pathname)) {
             System.out.println("[PEER] I backed up that file. Starting deletion...");
-            String fileId = this.internalState.getBackedUpFilesMap().get(pathname);
+            String fileId = this.internalState.getBackedUpFilesMap().get(pathname).getFileId();
 
             this.getIOExecutor().submit(new DeleteFile(this, fileId, pathname, 1));
         } else {
