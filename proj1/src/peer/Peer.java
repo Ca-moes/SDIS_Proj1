@@ -3,6 +3,7 @@ package peer;
 import files.*;
 import jobs.BackupChunk;
 import jobs.DeleteFile;
+import messages.GeneralKenobi;
 import messages.Message;
 import messages.MulticastService;
 import messages.RemovedMessage;
@@ -96,6 +97,11 @@ public class Peer implements InitiatorPeer {
         String version = this.protocolVersion + ((this.isEnhanced()) ? " - ENHANCED" : "");
 
         System.out.println("[PEER] Version: " + version);
+
+        if (this.isEnhanced()) {
+            System.out.println("[PEER] Cosplaying as General Kenobi and sending an 'Hello There' to peers listening...");
+            this.multicastControl.sendMessage(new GeneralKenobi(this.protocolVersion, this.peerId));
+        }
     }
 
     private void parseArgs(String[] args) throws IOException {

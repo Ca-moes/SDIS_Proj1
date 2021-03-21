@@ -46,32 +46,40 @@ public abstract class Message {
         String version = args[0];
         String type = args[1];
         int senderId = Integer.parseInt(args[2]);
-        String fileId = args[3];
         byte[] body = new byte[0];
         if (parts.length == 2) body = Arrays.copyOfRange(packet, headerBytes + 4, packetLength);
 
+        String fileId;
         int chunkNo;
         int replicationDegree;
 
         switch (type) {
             case "CHUNK":
+                fileId = args[3];
                 chunkNo = Integer.parseInt(args[4]);
                 return new ChunkMessage(version, senderId, fileId, chunkNo, body);
             case "DELETE":
+                fileId = args[3];
                 return new DeleteMessage(version, senderId, fileId);
             case "PUTCHUNK":
+                fileId = args[3];
                 chunkNo = Integer.parseInt(args[4]);
                 replicationDegree = Integer.parseInt(args[5]);
                 return new PutchunkMessage(version, senderId, fileId, chunkNo, replicationDegree, body);
             case "REMOVED":
+                fileId = args[3];
                 chunkNo = Integer.parseInt(args[4]);
                 return new RemovedMessage(version, senderId, fileId, chunkNo);
             case "STORED":
+                fileId = args[3];
                 chunkNo = Integer.parseInt(args[4]);
                 return new StoredMessage(version, senderId, fileId, chunkNo);
             case "GETCHUNK":
+                fileId = args[3];
                 chunkNo = Integer.parseInt(args[4]);
                 return new GetchunkMessage(version, senderId, fileId, chunkNo);
+            case "GENERALKENOBI":
+                return new GeneralKenobi(version, senderId);
             default:
                 throw new Exception("COULD NOT PARSE MESSAGE PACKET");
         }
