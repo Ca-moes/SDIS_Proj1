@@ -28,9 +28,9 @@ public class PeerInternalState implements Serializable {
     private long capacity = Constants.DEFAULT_CAPACITY;
     private long occupation;
 
-    private final transient Peer peer;
+    transient Peer peer;
 
-    private transient boolean acceptingRequests = true;
+    private static transient boolean acceptingRequests = true;
 
     public PeerInternalState(Peer peer) {
         this.sentChunksMap = new ConcurrentHashMap<>();
@@ -50,6 +50,7 @@ public class PeerInternalState implements Serializable {
             FileInputStream inputStream = new FileInputStream(DB_FILENAME);
             ObjectInputStream objectIn = new ObjectInputStream(inputStream);
             peerInternalState = (PeerInternalState) objectIn.readObject();
+            peerInternalState.peer = peer;
             inputStream.close();
             objectIn.close();
         } catch (IOException | ClassNotFoundException e) {
