@@ -3,22 +3,23 @@ package peer;
 import files.Chunk;
 import files.SavedChunk;
 import files.SentChunk;
+import files.ServerFile;
 import messages.Message;
 import messages.RemovedMessage;
 
 import java.io.*;
-import java.nio.file.*;
-import java.nio.file.attribute.BasicFileAttributes;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicLong;
 
 public class PeerInternalState implements Serializable {
     // chunkId -> sent chunk
     private final ConcurrentHashMap<String, SentChunk> sentChunksMap;
     // chunkId -> saved chunk
     private final ConcurrentHashMap<String, SavedChunk> savedChunksMap;
-    private final ConcurrentHashMap<String, String> backedUpFilesMap;
+    private final ConcurrentHashMap<String, ServerFile> backedUpFilesMap;
 
     private final Set<String> deletedFiles;
 
@@ -54,7 +55,7 @@ public class PeerInternalState implements Serializable {
             inputStream.close();
             objectIn.close();
         } catch (IOException | ClassNotFoundException e) {
-            System.out.println("[PIS] - Couldn't Load Database. Creating one now...");
+            System.out.println("[PIS] Couldn't Load Database. Creating one now...");
         }
 
         if (peerInternalState == null) {
@@ -73,18 +74,18 @@ public class PeerInternalState implements Serializable {
         // create dir if it does not exist
         if (!directory.exists())
             if (!directory.mkdir()) {
-                System.out.println("[PIS] - Directory doesn't exist but could not be created");
+                System.out.println("[PIS] Directory doesn't exist but could not be created");
                 return;
             }
         try {
             new File(DB_FILENAME).createNewFile();
         } catch (IOException e) {
-            System.out.println("[PIS] - Could not load/create database file");
+            System.out.println("[PIS] Could not load/create database file");
             e.printStackTrace();
             return;
         }
         this.updateOccupation();
-        System.out.println("[PIS] - Database Loaded/Created Successfully");
+        System.out.println("[PIS] Database Loaded/Created Successfully");
     }
 
     public void commit() {
@@ -121,7 +122,7 @@ public class PeerInternalState implements Serializable {
 
             updateOccupation();
         } catch (IOException i) {
-            System.out.println("[PIS] - Couldn't Save chunk " + chunk.getChunkId() + " on this peer");
+            System.out.println("[PIS] Couldn't Save chunk " + chunk.getChunkId());
             i.printStackTrace();
         }
 
@@ -147,38 +148,42 @@ public class PeerInternalState implements Serializable {
         return savedChunksMap;
     }
 
-    public ConcurrentHashMap<String, String> getBackedUpFilesMap() {
+    public ConcurrentHashMap<String, ServerFile> getBackedUpFilesMap() {
         return backedUpFilesMap;
     }
 
     @Override
     public String toString() {
-        StringBuilder out = new StringBuilder("BACKED FILES MAP\n");
-        out.append(this.backedUpFilesMap);
+        StringBuilder ret = new StringBuilder();
+        ret.append(String.format("-------------- PEER %d REPORT --------------\n", peer.getPeerId()));
+        ret.append("-- Backup Files --\n");
+        for (String pathname : this.backedUpFilesMap.keySet()) {
+            ServerFile file = this.backedUpFilesMap.get(pathname);
+            ret.append(file).append("\n");
 
-        out.append("\nSAVED CHUNKS MAP");
+            List<SentChunk> chunks = new ArrayList<>();
+
+            for (String chunkId : this.sentChunksMap.keySet()) {
+                SentChunk chunk = this.sentChunksMap.get(chunkId);
+                if (chunk.getFileId().equals(file.getFileId()))
+                    chunks.add(chunk);
+            }
+            chunks.sort(Comparator.comparingInt(Chunk::getChunkNo));
+            for (SentChunk chunk : chunks) {
+                ret.append("\t").append(chunk).append("\n");
+            }
+        }
+        ret.append("-- Saved Chunks --\n");
         for (String chunkId : this.savedChunksMap.keySet()) {
-            out.append(this.savedChunksMap.get(chunkId));
+            SavedChunk chunk = this.savedChunksMap.get(chunkId);
+            ret.append(chunk).append("\n");
         }
-        out.append("\nSENT CHUNKS MAP");
+        ret.append("----- Storage -----").append("\n");
+        ret.append(String.format("Capacity: %.2fKB\n", this.capacity / 1000.0));
+        ret.append(String.format("Occupation: %.2fKB\n", this.occupation / 1000.0));
+        ret.append("-------------- END OF REPORT --------------").append("\n");
 
-        double numberOfExceeded = 0;
-
-        for (String chunkId : this.sentChunksMap.keySet()) {
-            out.append(this.sentChunksMap.get(chunkId));
-            if (this.sentChunksMap.get(chunkId).getPeers().size() > this.sentChunksMap.get(chunkId).getReplicationDegree())
-                numberOfExceeded += 1;
-        }
-        out.append("\nDELETED FILES HASHMAP\n");
-        for (String fileId : this.deletedFiles) {
-            out.append(fileId).append("\n");
-        }
-
-        out.append("CAPACITY: ").append(this.capacity / 1000.0).append("KB\n");
-        out.append("OCCUPIED SPACE: ").append(this.occupation / 1000.0).append("KB\n");
-        out.append("Exceeded Rate: ").append(numberOfExceeded / this.sentChunksMap.size()).append("\n");
-
-        return out.toString();
+        return ret.toString();
     }
 
     public void deleteChunk(Chunk chunk) {
@@ -204,7 +209,7 @@ public class PeerInternalState implements Serializable {
     }
 
     public void deleteBackedUpEntries(String pathname) {
-        String fileId = this.backedUpFilesMap.remove(pathname);
+        String fileId = this.backedUpFilesMap.remove(pathname).getFileId();
         for (String chunkId : this.sentChunksMap.keySet()) {
             SentChunk chunk = this.sentChunksMap.get(chunkId);
             if (chunk.getFileId().equals(fileId)) {
@@ -247,14 +252,14 @@ public class PeerInternalState implements Serializable {
             // System.out.printf("[PEER] Safe deleting %s\n", chunk.getChunkId());
             this.removeChunk(chunk);
         }
-        System.out.printf("[PEER] Occupation after safe deleting: %d\n", this.occupation);
+        System.out.printf("[PIS] Occupation after safe deleting: %d\n", this.occupation);
         while (this.occupation > this.capacity && !unsafeDeletions.isEmpty()) {
             SavedChunk chunk = unsafeDeletions.remove(0);
 
             // System.out.printf("[PEER] Unsafe deleting %s\n", chunk.getChunkId());
             this.removeChunk(chunk);
         }
-        System.out.printf("[PEER] Occupation after unsafe deleting: %d\n", this.occupation);
+        System.out.printf("[PIS] Occupation after unsafe deleting: %d\n", this.occupation);
     }
 
     private void removeChunk(Chunk chunk) {
@@ -280,7 +285,7 @@ public class PeerInternalState implements Serializable {
         while (!safeDeletions.isEmpty()) {
             SavedChunk chunk = safeDeletions.remove(0);
 
-            System.out.printf("[PEER] Safe deleting %s\n", chunk.getChunkId());
+            System.out.printf("[PIS] Safe deleting %s\n", chunk.getChunkId());
             this.deleteChunk(chunk);
             this.getSavedChunksMap().remove(chunk.getChunkId());
             this.commit();

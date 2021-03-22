@@ -56,12 +56,7 @@ public class SentChunk extends Chunk implements Serializable {
 
     @Override
     public String toString() {
-        return "\nSentChunk{" +
-                "fileId='" + fileId + '\'' +
-                ", chunkNo=" + chunkNo +
-                ", replicationDegree=" + replicationDegree +
-                ", peers=" + peers +
-                '}';
+        return String.format("[SentChunk] ChunkNo: %-4d | Perceived Replication Degree: %d", chunkNo, peers.size());
     }
 
     public void setReceivingData(boolean receivingData) {

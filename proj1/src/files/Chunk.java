@@ -13,6 +13,7 @@ public abstract class Chunk implements Serializable {
     protected transient byte[] body;
     protected boolean receivedPutchunk = false;
     private boolean stored = false;
+    private double size = 0;
 
     public boolean receivedPutchunk() {
         return receivedPutchunk;
@@ -54,6 +55,9 @@ public abstract class Chunk implements Serializable {
 
     public void setBody(byte[] body) {
         this.body = body;
+        if (body != null) {
+            this.size = body.length / 1000.0;
+        }
     }
 
     public byte[] getBody() {
@@ -95,5 +99,9 @@ public abstract class Chunk implements Serializable {
     
     public void setStored(boolean stored) {
         this.stored = stored;
+    }
+
+    public double getSize() {
+        return size;
     }
 }

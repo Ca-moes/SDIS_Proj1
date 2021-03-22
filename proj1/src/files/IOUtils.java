@@ -45,6 +45,18 @@ public class IOUtils {
         return 0;
     }
 
+    public static double getSize(String pathname) {
+        File file = new File(pathname);
+        BasicFileAttributes attributes;
+        try {
+            attributes = Files.getFileAttributeView(file.toPath(), BasicFileAttributeView.class).readAttributes();
+            return attributes.size() / 1000.0;
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return -1;
+    }
+
     private static String hashToASCII(String string) {
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
