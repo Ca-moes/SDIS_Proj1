@@ -261,6 +261,8 @@ public class Peer implements InitiatorPeer {
 
     @Override
     public String state() throws RemoteException {
+        ReportMaker.toHTML(this.internalState);
+
         return this.internalState.toString();
     }
 

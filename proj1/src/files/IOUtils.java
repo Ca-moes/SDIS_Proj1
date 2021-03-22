@@ -57,7 +57,7 @@ public class IOUtils {
         return -1;
     }
 
-    private static String hashToASCII(String string) {
+    public static String hashToASCII(String string) {
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
             byte[] hash = digest.digest(string.getBytes(StandardCharsets.UTF_8));

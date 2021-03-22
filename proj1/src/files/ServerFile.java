@@ -15,6 +15,10 @@ public class ServerFile implements Serializable {
         this.size = size;
     }
 
+    public double getSize() {
+        return size;
+    }
+
     public String getFileId() {
         return fileId;
     }
