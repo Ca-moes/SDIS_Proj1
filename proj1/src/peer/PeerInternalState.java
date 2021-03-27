@@ -114,9 +114,7 @@ public class PeerInternalState implements Serializable {
             Path path = Paths.get(chunkPathName);
             Files.createDirectories(path.getParent());
 
-            FileOutputStream fos = new FileOutputStream(chunkPathName);
-            fos.write(chunk.getBody());
-            fos.close();
+            Files.write(path, chunk.getBody());
 
             chunk.clearBody();
 
@@ -355,7 +353,7 @@ public class PeerInternalState implements Serializable {
     }
 
     public long directorySize(File dir) throws IOException {
-        Path folder = Paths.get(PEER_DIRECTORY);
+        Path folder = dir.toPath();
         return Files.walk(folder)
                 .filter(p -> p.toFile().isFile())
                 .mapToLong(p -> p.toFile().length())
