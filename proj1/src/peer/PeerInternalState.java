@@ -228,6 +228,7 @@ public class PeerInternalState implements Serializable {
             try {
                 chunk.setBody(Files.readAllBytes(file.toPath()));
             } catch (IOException e) {
+                chunk.setBody(null);
                 e.printStackTrace();
             }
         }

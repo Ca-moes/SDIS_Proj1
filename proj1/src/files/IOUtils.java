@@ -11,7 +11,17 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
+/**
+ * This class is mostly Static, as the name suggests, this is a class for Utility methods
+ */
 public class IOUtils {
+    /**
+     * Method to create a file ID given a pathname
+     *
+     * @param pathname File's pathname to be created a file ID for
+     * @return The file ID
+     * @throws IOException On error reading the data
+     */
     public static String getFileId(String pathname) throws IOException {
         File file = new File(pathname);
 
@@ -24,7 +34,7 @@ public class IOUtils {
 
         String dataSHA = "";
 
-        while ((in.read(myBuffer,0,64000) != -1)) {
+        while ((in.read(myBuffer, 0, 64000) != -1)) {
             String hex = bytesToHex(myBuffer);
             dataSHA = hashToASCII(dataSHA + hex);
         }
@@ -32,6 +42,12 @@ public class IOUtils {
         return hashToASCII(name + modificationDate + dataSHA);
     }
 
+    /**
+     * Method to count how many chunks are on a file given a pathname using NIO
+     *
+     * @param pathname File's pathname to count the chunk number
+     * @return This file's chunk count
+     */
     public static int getNumberOfChunks(String pathname) {
         File file = new File(pathname);
         BasicFileAttributes attributes;
@@ -45,6 +61,12 @@ public class IOUtils {
         return 0;
     }
 
+    /**
+     * Method to get the size of a file given a pathname using NIO
+     *
+     * @param pathname File's pathname to retrieve the file's size
+     * @return The file's size in KB (1000B = 1KB)
+     */
     public static double getSize(String pathname) {
         File file = new File(pathname);
         BasicFileAttributes attributes;
@@ -57,6 +79,12 @@ public class IOUtils {
         return -1;
     }
 
+    /**
+     * Method to hash a string and convert it to ASCII encoding
+     *
+     * @param string String to be hashed and converted
+     * @return The Hash on ASCII encoding
+     */
     public static String hashToASCII(String string) {
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
@@ -68,6 +96,12 @@ public class IOUtils {
         return null;
     }
 
+    /**
+     * Method to convert a byte array to the Hexadecimal representation
+     *
+     * @param bytes Byte array to be converted to String on a Hexadecimal Representation
+     * @return The byte array converted to a Hexadecimal String
+     */
     private static String bytesToHex(byte[] bytes) {
         char[] HEX_ARRAY = "0123456789abcdef".toCharArray();
 
@@ -79,8 +113,4 @@ public class IOUtils {
         }
         return new String(hexChars);
     }
-
-
-
-
 }
