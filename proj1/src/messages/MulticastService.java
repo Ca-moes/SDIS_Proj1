@@ -9,11 +9,23 @@ import java.net.InetAddress;
 import java.net.MulticastSocket;
 import java.util.Arrays;
 
+/**
+ * Class responsible to Send and Receive messages through multicast
+ */
 public class MulticastService extends MulticastSocket implements Runnable {
     private final InetAddress address;
     private final Peer peer;
     private final String identifier;
 
+    /**
+     * Constructor for the multicast service
+     *
+     * @param address    Address for the multicast socket
+     * @param port       Port for the multicast socket
+     * @param peer       Peer controlling the socket
+     * @param identifier Service ID (MC | MDB | MDR)
+     * @throws IOException On error creating the socket
+     */
     public MulticastService(InetAddress address, int port, Peer peer, String identifier) throws IOException {
         super(port);
         this.address = address;
@@ -22,8 +34,15 @@ public class MulticastService extends MulticastSocket implements Runnable {
 
         this.setTimeToLive(1);
         this.joinGroup(this.address);
+        System.out.printf("[MULTICAST SERVICE] [%s] Service is now Online\n", this.identifier);
     }
 
+    /**
+     * Method to send a message through multicast
+     *
+     * @param message Message to be sent
+     * @return true if the sending operation is successful
+     */
     public boolean sendMessage(Message message) {
         byte[] buffer = message.encodeToSend();
 
@@ -38,6 +57,9 @@ public class MulticastService extends MulticastSocket implements Runnable {
         }
     }
 
+    /**
+     * Method to be receiving packets and sending them to the dispatcher for triage right as they arrive
+     */
     @Override
     public void run() {
         while (true) {
