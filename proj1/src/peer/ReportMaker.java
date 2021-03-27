@@ -10,6 +10,7 @@ import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 
 public class ReportMaker {
     private final static String header = "<!DOCTYPE html>\n" +
@@ -64,15 +65,15 @@ public class ReportMaker {
         builder.append(" <div class=\"p-3\">\n" +
                 "        <h2>Backed Up Files</h2>\n" +
                 "        <ul class=\"list-group mt-3\">");
-        for (String pathname : state.getBackedUpFilesMap().keySet()) {
-            ServerFile file = state.getBackedUpFilesMap().get(pathname);
+        for (Map.Entry<String, ServerFile> serverFileEntry : state.getBackedUpFilesMap().entrySet()) {
+            ServerFile file = serverFileEntry.getValue();
 
-            builder.append(String.format(backedFile, pathname, file.getFileId(), file.getReplicationDegree(), file.getSize()));
+            builder.append(String.format(backedFile, serverFileEntry.getKey(), file.getFileId(), file.getReplicationDegree(), file.getSize()));
 
             List<SentChunk> chunks = new ArrayList<>();
 
-            for (String chunkId : state.getSentChunksMap().keySet()) {
-                SentChunk chunk = state.getSentChunksMap().get(chunkId);
+            for (Map.Entry<String, SentChunk> sentChunkEntry : state.getSentChunksMap().entrySet()) {
+                SentChunk chunk = sentChunkEntry.getValue();
                 if (chunk.getFileId().equals(file.getFileId()))
                     chunks.add(chunk);
             }
@@ -86,8 +87,8 @@ public class ReportMaker {
                 "        <h2>Saved Chunks</h2>\n" +
                 "        <ul class=\"list-group mt-3\">");
 
-        for (String chunkId : state.getSavedChunksMap().keySet()) {
-            SavedChunk chunk = state.getSavedChunksMap().get(chunkId);
+        for (Map.Entry<String, SavedChunk> savedChunkEntry : state.getSavedChunksMap().entrySet()) {
+            SavedChunk chunk = savedChunkEntry.getValue();
             builder.append(String.format(savedChunk, chunk.getFileId(), chunk.getChunkNo(), chunk.getReplicationDegree(), chunk.getPeers().size(), chunk.getSize()));
         }
 

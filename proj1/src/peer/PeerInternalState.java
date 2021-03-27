@@ -114,9 +114,7 @@ public class PeerInternalState implements Serializable {
             Path path = Paths.get(chunkPathName);
             Files.createDirectories(path.getParent());
 
-            FileOutputStream fos = new FileOutputStream(chunkPathName);
-            fos.write(chunk.getBody());
-            fos.close();
+            Files.write(path, chunk.getBody());
 
             chunk.clearBody();
 
@@ -157,14 +155,14 @@ public class PeerInternalState implements Serializable {
         StringBuilder ret = new StringBuilder();
         ret.append(String.format("-------------- PEER %d REPORT --------------\n", peer.getPeerId()));
         ret.append("-- Backup Files --\n");
-        for (String pathname : this.backedUpFilesMap.keySet()) {
-            ServerFile file = this.backedUpFilesMap.get(pathname);
+        for (Map.Entry<String, ServerFile> entry : this.backedUpFilesMap.entrySet()) {
+            ServerFile file = entry.getValue();
             ret.append(file).append("\n");
 
             List<SentChunk> chunks = new ArrayList<>();
 
-            for (String chunkId : this.sentChunksMap.keySet()) {
-                SentChunk chunk = this.sentChunksMap.get(chunkId);
+            for (Map.Entry<String, SentChunk> sentChunkEntry : this.sentChunksMap.entrySet()) {
+                SentChunk chunk = sentChunkEntry.getValue();
                 if (chunk.getFileId().equals(file.getFileId()))
                     chunks.add(chunk);
             }
@@ -174,8 +172,8 @@ public class PeerInternalState implements Serializable {
             }
         }
         ret.append("-- Saved Chunks --\n");
-        for (String chunkId : this.savedChunksMap.keySet()) {
-            SavedChunk chunk = this.savedChunksMap.get(chunkId);
+        for (Map.Entry<String, SavedChunk> savedChunkEntry : this.savedChunksMap.entrySet()) {
+            SavedChunk chunk = savedChunkEntry.getValue();
             ret.append(chunk).append("\n");
         }
         ret.append("----- Storage -----").append("\n");
@@ -210,10 +208,10 @@ public class PeerInternalState implements Serializable {
 
     public void deleteBackedUpEntries(String pathname) {
         String fileId = this.backedUpFilesMap.remove(pathname).getFileId();
-        for (String chunkId : this.sentChunksMap.keySet()) {
-            SentChunk chunk = this.sentChunksMap.get(chunkId);
+        for (Map.Entry<String, SentChunk> entry : this.sentChunksMap.entrySet()) {
+            SentChunk chunk = entry.getValue();
             if (chunk.getFileId().equals(fileId)) {
-                this.sentChunksMap.remove(chunkId);
+                this.sentChunksMap.remove(entry.getKey());
             }
         }
         this.commit();
@@ -238,8 +236,8 @@ public class PeerInternalState implements Serializable {
     public void forceFreeSpace() {
         ArrayList<SavedChunk> safeDeletions = new ArrayList<>();
         ArrayList<SavedChunk> unsafeDeletions = new ArrayList<>();
-        for (String chunkId : this.getSavedChunksMap().keySet()) {
-            SavedChunk chunk = this.getSavedChunksMap().get(chunkId);
+        for (Map.Entry<String, SavedChunk> entry : this.getSavedChunksMap().entrySet()) {
+            SavedChunk chunk = entry.getValue();
             if (chunk.getPeers().size() > chunk.getReplicationDegree())
                 safeDeletions.add(chunk);
             else
@@ -271,13 +269,13 @@ public class PeerInternalState implements Serializable {
     }
 
     public boolean freeSpace() {
-        if (!this.acceptingRequests) return false;
+        if (!acceptingRequests) return false;
         lockRequests(false);
         System.out.println("[PIS] Trying to free some space...");
 
         ArrayList<SavedChunk> safeDeletions = new ArrayList<>();
-        for (String chunkId : this.getSavedChunksMap().keySet()) {
-            SavedChunk chunk = this.getSavedChunksMap().get(chunkId);
+        for (Map.Entry<String, SavedChunk> entry : this.getSavedChunksMap().entrySet()) {
+            SavedChunk chunk = entry.getValue();
             if (chunk.getPeers().size() > chunk.getReplicationDegree())
                 safeDeletions.add(chunk);
         }
@@ -303,7 +301,7 @@ public class PeerInternalState implements Serializable {
     }
 
     private void setAcceptingRequests(boolean acceptingRequests) {
-        this.acceptingRequests = acceptingRequests;
+        PeerInternalState.acceptingRequests = acceptingRequests;
         Timer timer = new Timer(true);
 
         if (acceptingRequests) {
@@ -322,7 +320,7 @@ public class PeerInternalState implements Serializable {
     }
 
     private void lockRequests(boolean accepting) {
-        this.acceptingRequests = accepting;
+        acceptingRequests = accepting;
     }
 
     public boolean isAcceptingRequests() {
@@ -355,7 +353,7 @@ public class PeerInternalState implements Serializable {
     }
 
     public long directorySize(File dir) throws IOException {
-        Path folder = Paths.get(PEER_DIRECTORY);
+        Path folder = dir.toPath();
         return Files.walk(folder)
                 .filter(p -> p.toFile().isFile())
                 .mapToLong(p -> p.toFile().length())

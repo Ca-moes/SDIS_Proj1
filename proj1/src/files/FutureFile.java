@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
@@ -26,12 +27,12 @@ public class FutureFile {
         this.pathname = pathname;
         this.peer = peer;
 
-        for (String chunkId : this.peer.getInternalState().getSentChunksMap().keySet()) {
-            String fId = chunkId.split("_")[0];
-            if (fId.equals(fileId)) {
-                sentChunks.add(this.peer.getInternalState().getSentChunksMap().get(chunkId));
+        for (Map.Entry<String, SentChunk> entry : this.peer.getInternalState().getSentChunksMap().entrySet()) {
+            if (entry.getValue().getFileId().equals(fileId)) {
+                sentChunks.add(entry.getValue());
             }
         }
+
         this.numChunks = sentChunks.size();
         this.restoredPathname = String.format(restoredPathname, this.peer.getInternalState().getPeerDirectory(), new File(pathname).getName());
     }
