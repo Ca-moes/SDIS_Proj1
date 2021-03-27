@@ -4,13 +4,31 @@ import peer.InitiatorPeer;
 
 import java.rmi.RemoteException;
 
+/**
+ * Abstract class responsible to start new operations on the Initiator Peer
+ *
+ * @see InitiatorPeer
+ */
 public abstract class Operation {
     protected final InitiatorPeer stub;
 
+    /**
+     * Super constructor
+     *
+     * @param stub Initiator Peer stub
+     */
     public Operation(InitiatorPeer stub) {
         this.stub = stub;
     }
 
+    /**
+     * Static method to create an operation given a set of arguments and a stub
+     *
+     * @param stub Initiator Peer stub
+     * @param args Arguments received on the command line at the start of the Client
+     * @return A parsed operation to take advantage of polymorphism and OOP
+     * @throws Exception On error parsing the arguments
+     */
     public static Operation createOperation(InitiatorPeer stub, String[] args) throws Exception {
         switch (args[1]) {
             case "BACKUP":
@@ -28,5 +46,10 @@ public abstract class Operation {
         }
     }
 
+    /**
+     * Abstract Method to start an operation, this method is of course implemented on the extended classes
+     *
+     * @throws RemoteException On error connecting with the Initiator Peer RMI service
+     */
     public abstract void start() throws RemoteException;
 }
