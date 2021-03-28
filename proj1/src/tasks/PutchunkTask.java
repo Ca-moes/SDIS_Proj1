@@ -9,11 +9,25 @@ import peer.Peer;
 
 import java.util.concurrent.TimeUnit;
 
+/**
+ * Task responsible to process a PUTCHUNK Message
+ */
 public class PutchunkTask extends Task {
+    /**
+     * @param message PUTCHUNK message received on the multicast channel
+     * @param peer    Peer responsible for this task
+     */
     public PutchunkTask(PutchunkMessage message, Peer peer) {
         super(message, peer);
     }
 
+    /**
+     * This method will perform the necessary checks to store a chunk (space needed, if it already is saving the chunk,
+     * etc.) then it will start the SendStoredChunk job after a delay, this job is enhanced by default as it does not
+     * interfere with the peers interoperability, the enhancement details can be found on the SendStoredChunk class
+     *
+     * @see SendStoredChunk
+     */
     @Override
     public void run() {
         SavedChunk chunk = new SavedChunk(message.getFileId(), message.getChunkNo(), message.getReplicationDegree(), message.getBody());

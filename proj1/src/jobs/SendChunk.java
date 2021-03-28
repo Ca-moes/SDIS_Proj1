@@ -11,17 +11,33 @@ import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 
+/**
+ * Job responsible to Send a Chunk to the initiator peer, this job will be triggered by the GETCHUNK task
+ *
+ * @see tasks.GetchunkTask
+ */
 public class SendChunk implements Runnable {
     private final GetchunkMessage message;
     private final SavedChunk chunk;
     private final Peer peer;
 
+    /**
+     * @param message GETCHUNK message, the message is need to check if the data feed is done by TCP or Multicast
+     * @param chunk   Chunk to be sent
+     * @param peer    Peer responsible for this Job
+     * @see GetchunkMessage
+     * @see tasks.GetchunkTask
+     */
     public SendChunk(GetchunkMessage message, SavedChunk chunk, Peer peer) {
         this.message = message;
         this.chunk = chunk;
         this.peer = peer;
     }
 
+    /**
+     * Method to start this job, this method will perform the necessary checks and then send the chunk by Multicast or
+     * TCP, depending on the protocol version
+     */
     @Override
     public void run() {
         if (chunk.isAlreadyProvided()) {

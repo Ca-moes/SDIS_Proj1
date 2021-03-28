@@ -13,6 +13,10 @@ import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
+
+/**
+ * This class responsible to receive and reconstruct a "future" file
+ */
 public class FutureFile {
     private final String fileId;
     private final String pathname;
@@ -22,6 +26,14 @@ public class FutureFile {
 
     private String restoredPathname = "%s/restored_%s";
 
+    /**
+     * Constructor for the FutureFile given a file Id, a pathname and the responsible peer
+     *
+     * @param fileId   This file's File ID
+     * @param pathname This file's Pathname
+     * @param peer     This file's responsible Peer
+     * @see Peer
+     */
     public FutureFile(String fileId, String pathname, Peer peer) {
         this.fileId = fileId;
         this.pathname = pathname;
@@ -37,6 +49,9 @@ public class FutureFile {
         this.restoredPathname = String.format(restoredPathname, this.peer.getInternalState().getPeerDirectory(), new File(pathname).getName());
     }
 
+    /**
+     * Access Method to restore a file
+     */
     public void restoreFile() {
         try {
             getChunks();
@@ -45,6 +60,13 @@ public class FutureFile {
         }
     }
 
+    /**
+     * Private method to receive the Chunks
+     *
+     * @throws ExecutionException   On error getting a future Chunk
+     * @throws InterruptedException On error while sleeping
+     * @throws IOException          On error while performing I/O operations
+     */
     private void getChunks() throws ExecutionException, InterruptedException, IOException {
         System.out.println("[PEER] Gathering chunks from peers. Listing properties below...");
         System.out.printf("FileID: %s\n", this.fileId);

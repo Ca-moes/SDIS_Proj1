@@ -9,6 +9,9 @@ import java.util.Arrays;
 import java.util.Objects;
 import java.util.concurrent.ExecutorService;
 
+/**
+ * Abstract Super Class Message
+ */
 public abstract class Message {
     protected final String protocolVersion;
     protected final String type;
@@ -18,6 +21,17 @@ public abstract class Message {
     protected final int replicationDegree;
     protected final byte[] body;
 
+    /**
+     * Default Constructor for a Message
+     *
+     * @param protocolVersion   Current Protocol Version
+     * @param type              Type of Message
+     * @param senderId          Sender ID
+     * @param fileId            File ID
+     * @param chunkNo           Chunk Sequential Number
+     * @param replicationDegree Desired Replication Degree
+     * @param body              Chunk Body
+     */
     public Message(String protocolVersion, String type, int senderId, String fileId, int chunkNo, int replicationDegree, byte[] body) {
         this.protocolVersion = protocolVersion;
         this.type = type;
@@ -28,6 +42,14 @@ public abstract class Message {
         this.body = body;
     }
 
+    /**
+     * Create a Message from the DatagramPacket data
+     *
+     * @param packet       packed data in byte array
+     * @param packetLength packed data's length
+     * @return The parsed Message (taking advantage of Java's polymorphism)
+     * @throws Exception On error trying to parse the packet
+     */
     public static Message fromDatagramPacket(byte[] packet, int packetLength) throws Exception {
         String packetData = new String(packet);
         packetData = packetData.substring(0, Math.min(packetLength, packetData.length()));
@@ -85,14 +107,30 @@ public abstract class Message {
         }
     }
 
+    /**
+     * Method to encode the address and port to a byte array, this method is used for the
+     * Restore Enhancement as we need to pass the address and port for the server socket on
+     * the CHUNK message
+     *
+     * @param address Address to encode
+     * @param port    Port to encode
+     * @return The byte array containing the address and port in address:port format
+     * @see jobs.SendChunk
+     */
     public static byte[] addressPortToBytes(InetAddress address, int port) {
         return String.format("%s:%d", address.getHostAddress(), port).getBytes(StandardCharsets.UTF_8);
     }
 
+    /**
+     * @return True if the peer is enhanced
+     */
     public boolean isEnhanced() {
         return !protocolVersion.equals("1.0");
     }
 
+    /**
+     * @return The encoded full header
+     */
     public byte[] encodeToSend() {
         return String.format("%s %s %d %s %d %d \r\n\r\n",
                 this.protocolVersion,
@@ -104,10 +142,17 @@ public abstract class Message {
                 .getBytes(StandardCharsets.UTF_8);
     }
 
+    /**
+     * This method is used to discard own messages
+     *
+     * @param senderId Sender ID on the message
+     * @return True if the sender ID passed as argument is the same as this message's sender ID
+     */
     public boolean isOwner(int senderId) {
         return this.senderId == senderId;
     }
 
+    //! Not documented
     @Override
     @Deprecated
     public boolean equals(Object o) {
@@ -117,11 +162,13 @@ public abstract class Message {
         return chunkNo == message.chunkNo && Objects.equals(protocolVersion, message.protocolVersion) && Objects.equals(type, message.type) && senderId == message.senderId && Objects.equals(fileId, message.fileId);
     }
 
+    //! Not documented
     @Override
     public int hashCode() {
         return Objects.hash(protocolVersion, type, senderId, fileId, chunkNo);
     }
 
+    //! Not documented
     @Override
     public String toString() {
         return "Message{" +
@@ -131,38 +178,52 @@ public abstract class Message {
                 ", fileId='" + fileId + '\'' +
                 ", chunkNo=" + chunkNo +
                 ", replicationDegree=" + replicationDegree +
-                /*", body=" + Arrays.toString(body) +*/
                 '}';
     }
 
+    /**
+     * @param peer Peer used to get the associated worker
+     * @return The related worker depending on the message type
+     */
     abstract public ExecutorService getWorker(Peer peer);
 
+    /**
+     * @param peer Peer used to create the associated Task
+     * @return The related Task depending on the message type
+     */
     abstract public Task createTask(Peer peer);
 
+    //! Not documented
     public String getProtocolVersion() {
         return protocolVersion;
     }
 
+    //! Not documented
     public String getType() {
         return type;
     }
 
+    //! Not documented
     public int getSenderId() {
         return senderId;
     }
 
+    //! Not documented
     public String getFileId() {
         return fileId;
     }
 
+    //! Not documented
     public int getChunkNo() {
         return chunkNo;
     }
 
+    //! Not documented
     public int getReplicationDegree() {
         return replicationDegree;
     }
 
+    //! Not documented
     public byte[] getBody() {
         return body;
     }

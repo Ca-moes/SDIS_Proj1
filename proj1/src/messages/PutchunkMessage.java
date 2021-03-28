@@ -6,11 +6,16 @@ import tasks.Task;
 
 import java.util.concurrent.ExecutorService;
 
+/**
+ * PUTCHUNK Message Data Class
+ */
 public class PutchunkMessage extends Message {
+    //! Not documented
     public PutchunkMessage(String protocolVersion, int senderId, String fileId, int chunkNo, int replicationDegree, byte[] body) {
         super(protocolVersion, "PUTCHUNK", senderId, fileId, chunkNo, replicationDegree, body);
     }
 
+    //! Not documented
     @Override
     public byte[] encodeToSend() {
         byte[] header = super.encodeToSend();
@@ -21,11 +26,13 @@ public class PutchunkMessage extends Message {
         return toSend;
     }
 
+    //! Not documented
     @Override
     public Task createTask(Peer peer) {
         return new PutchunkTask(this, peer);
     }
 
+    //! Not documented
     @Override
     public ExecutorService getWorker(Peer peer) {
         return peer.getRequestsExecutor();

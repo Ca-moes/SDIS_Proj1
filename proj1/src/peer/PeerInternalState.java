@@ -14,6 +14,11 @@ import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
+/**
+ * The Peer's Database and State Manager, this class is serializable as we need to store the data on persistent
+ * memory so that we can reload the Peer without data loss. Our chunks maps are mapped ChunkId to Chunk where
+ * ChunkID stands for fileID_chunkNo
+ */
 public class PeerInternalState implements Serializable {
     // chunkId -> sent chunk
     private final ConcurrentHashMap<String, SentChunk> sentChunksMap;
@@ -25,7 +30,7 @@ public class PeerInternalState implements Serializable {
 
     private static transient String PEER_DIRECTORY = "peer%d";
     private static transient String DB_FILENAME = "peer%d/data.ser";
-    private static transient String CHUNK_PATH = "%s/%s/%d";
+    private static final transient String CHUNK_PATH = "%s/%s/%d";
     private long capacity = Constants.DEFAULT_CAPACITY;
     private long occupation;
 
@@ -33,6 +38,14 @@ public class PeerInternalState implements Serializable {
 
     private static transient boolean acceptingRequests = true;
 
+    /**
+     * Default constructor for peer's internal state
+     * <p>
+     * It starts the necessary maps, we are using the ConcurrentHashMap class for everything in our project
+     * has this program is highly competitive in therms of resources access
+     *
+     * @param peer Peer owning this database, this is useful for backwards access
+     */
     public PeerInternalState(Peer peer) {
         this.sentChunksMap = new ConcurrentHashMap<>();
         this.savedChunksMap = new ConcurrentHashMap<>();
@@ -41,6 +54,13 @@ public class PeerInternalState implements Serializable {
         this.peer = peer;
     }
 
+    /**
+     * Method to load the database from the local storage, or create a new one if it does not exist or cannot be
+     * read. The peer is needed here so we can associate it with this database
+     *
+     * @param peer Peer owning this database
+     * @return The PeerInternalState created/loaded
+     */
     public static PeerInternalState loadInternalState(Peer peer) {
         PEER_DIRECTORY = String.format(PEER_DIRECTORY, peer.getPeerId());
         DB_FILENAME = String.format(DB_FILENAME, peer.getPeerId());
@@ -69,6 +89,9 @@ public class PeerInternalState implements Serializable {
         return peerInternalState;
     }
 
+    /**
+     * Method to build a new database
+     */
     private void build() {
         File directory = new File(PEER_DIRECTORY);
         // create dir if it does not exist
@@ -88,6 +111,9 @@ public class PeerInternalState implements Serializable {
         System.out.println("[PIS] Database Loaded/Created Successfully");
     }
 
+    /**
+     * Method to write the database to persistent memory, like a commit on a real database
+     */
     public void commit() {
         try {
             FileOutputStream fileOut = new FileOutputStream(DB_FILENAME);
@@ -103,10 +129,19 @@ public class PeerInternalState implements Serializable {
         this.updateOccupation();
     }
 
+    /**
+     * Method to update the Peer's Storage Occupation
+     */
     private void updateOccupation() {
         this.occupation = this.calculateOccupation();
     }
 
+    /**
+     * Method to store a SavedChunk on the local storage
+     *
+     * @param chunk Chunk to be stored
+     * @see SavedChunk
+     */
     public void storeChunk(SavedChunk chunk) {
         try {
             String chunkPathName = String.format(CHUNK_PATH, PEER_DIRECTORY, chunk.getFileId(), chunk.getChunkNo());
@@ -126,30 +161,54 @@ public class PeerInternalState implements Serializable {
 
     }
 
+    /**
+     * Method to update Stored Confirmations on Sent Chunks Map
+     *
+     * @param chunk   Chunk to update confirmation
+     * @param replier Peer who have stored the Chunk
+     */
     public void updateStoredConfirmation(SentChunk chunk, int replier) {
         if (sentChunksMap.containsKey(chunk.getChunkId())) {
             sentChunksMap.get(chunk.getChunkId()).getPeers().add(replier);
         }
     }
 
+    /**
+     * Method to update Stored Confirmations on Saved Chunks Map
+     *
+     * @param chunk   Chunk to update confirmation
+     * @param replier Peer who have stored the Chunk
+     */
     public void updateStoredConfirmation(SavedChunk chunk, int replier) {
         if (savedChunksMap.containsKey(chunk.getChunkId())) {
             savedChunksMap.get(chunk.getChunkId()).getPeers().add(replier);
         }
     }
 
+    /**
+     * @return The sent chunks map
+     */
     public ConcurrentHashMap<String, SentChunk> getSentChunksMap() {
         return sentChunksMap;
     }
 
+    /**
+     * @return The saved chunks map
+     */
     public ConcurrentHashMap<String, SavedChunk> getSavedChunksMap() {
         return savedChunksMap;
     }
 
+    /**
+     * @return The backed up files map
+     */
     public ConcurrentHashMap<String, ServerFile> getBackedUpFilesMap() {
         return backedUpFilesMap;
     }
 
+    /**
+     * @return This Peer's Internal State String representation
+     */
     @Override
     public String toString() {
         StringBuilder ret = new StringBuilder();
@@ -184,6 +243,12 @@ public class PeerInternalState implements Serializable {
         return ret.toString();
     }
 
+    /**
+     * This method will delete a chunk, delete empty folders and then update
+     * the current occupation
+     *
+     * @param chunk Chunk to be deleted
+     */
     public void deleteChunk(Chunk chunk) {
         String filepath = String.format(CHUNK_PATH, PEER_DIRECTORY, chunk.getFileId(), chunk.getChunkNo());
         File file = new File(filepath);
@@ -194,6 +259,9 @@ public class PeerInternalState implements Serializable {
         this.updateOccupation();
     }
 
+    /**
+     * Method to delete empty folders
+     */
     private void deleteEmptyFolders() {
         try {
             Files.walk(Paths.get(PEER_DIRECTORY))
@@ -206,6 +274,11 @@ public class PeerInternalState implements Serializable {
         }
     }
 
+    /**
+     * Method to remove entries on the sent chunks map related to a backed up file pathname
+     *
+     * @param pathname File's pathname whose chunks will be removed from the sent chunks map
+     */
     public void deleteBackedUpEntries(String pathname) {
         String fileId = this.backedUpFilesMap.remove(pathname).getFileId();
         for (Map.Entry<String, SentChunk> entry : this.sentChunksMap.entrySet()) {
@@ -217,10 +290,19 @@ public class PeerInternalState implements Serializable {
         this.commit();
     }
 
+    /**
+     * @return The Deleted Files Set
+     */
     public Set<String> getDeletedFiles() {
         return deletedFiles;
     }
 
+    /**
+     * Method to fill a Chunk's Body from the local storage, it's using Java's Non-Blocking IO, so no problem
+     * with thread safety here
+     *
+     * @param chunk Chunk whose body will be filled
+     */
     public void fillBodyFromDisk(Chunk chunk) {
         if (chunk != null && chunk.getBody() == null) {
             String filepath = String.format(CHUNK_PATH, PEER_DIRECTORY, chunk.getFileId(), chunk.getChunkNo());
@@ -228,11 +310,19 @@ public class PeerInternalState implements Serializable {
             try {
                 chunk.setBody(Files.readAllBytes(file.toPath()));
             } catch (IOException e) {
+                chunk.setBody(null);
                 e.printStackTrace();
             }
         }
     }
 
+    /**
+     * Method to force a space reclaiming, it will start by deleting safe chunks (chunks whose replication degree is
+     * higher than the desired) and then if necessary it will delete the unsafe chunks, until either the occupation
+     * is lesser or equal than the capacity or there are no more chunks left to delete. Either way, when this method
+     * is called it's expected to also have interrupted the PUTCHUNK task handling for 60 seconds, leaving enough time
+     * for the successful deletion of chunks
+     */
     public void forceFreeSpace() {
         ArrayList<SavedChunk> safeDeletions = new ArrayList<>();
         ArrayList<SavedChunk> unsafeDeletions = new ArrayList<>();
@@ -260,6 +350,16 @@ public class PeerInternalState implements Serializable {
         System.out.printf("[PIS] Occupation after unsafe deleting: %d\n", this.occupation);
     }
 
+    /**
+     * Method to remove a chunk from the file system and from the saved chunks map
+     * <p>
+     * This method will permanently delete the chunk and send a REMOVED message after that, it's used on the
+     * reclaim protocol mostly, but can be used on the PUTCHUNK task if the Peer has not enough space to
+     * store a chunk but can free some space by deleting safe chunks (Chunks whose actual replication degree is
+     * actually higher than the desired)
+     *
+     * @param chunk Chunk to be Deleted
+     */
     private void removeChunk(Chunk chunk) {
         this.deleteChunk(chunk);
         this.getSavedChunksMap().remove(chunk.getChunkId());
@@ -268,6 +368,12 @@ public class PeerInternalState implements Serializable {
         this.peer.getMulticastControl().sendMessage(message);
     }
 
+    /**
+     * Method to free space by deleting unnecessary chunks (Chunks whose actual replication degree is actually higher
+     * than the desired) it will lock PUTCHUNK requests while performing this task
+     *
+     * @return <code>true</code> if the operation finished successfully
+     */
     public boolean freeSpace() {
         if (!acceptingRequests) return false;
         lockRequests(false);
@@ -296,10 +402,20 @@ public class PeerInternalState implements Serializable {
         return true;
     }
 
+    /**
+     * Method to interrupt the PUTCHUNK Tasks handling, this Peer will not handle any PUTCHUNK message for 60 seconds,
+     * it's most likely due to the start of a reclaim operation.
+     */
     public void interruptPutchunks() {
         this.setAcceptingRequests(false);
     }
 
+    /**
+     * Method to set the accepting requests flag, if it receives a <code>false</code> value as parameter it will
+     * lock the requests and unlock them after 60 seconds
+     *
+     * @param acceptingRequests Flag's new Value
+     */
     private void setAcceptingRequests(boolean acceptingRequests) {
         PeerInternalState.acceptingRequests = acceptingRequests;
         Timer timer = new Timer(true);
@@ -319,14 +435,27 @@ public class PeerInternalState implements Serializable {
         }
     }
 
+    /**
+     * Method to instantly lock/unlock the PUTCHUNK Tasks handling
+     *
+     * @param accepting New value for the flag
+     */
     private void lockRequests(boolean accepting) {
         acceptingRequests = accepting;
     }
 
+    /**
+     * @return <code>true</code> if this peer is receiving PUTCHUNK requests at the moment
+     */
     public boolean isAcceptingRequests() {
         return acceptingRequests;
     }
 
+    /**
+     * Method to calculate the occupation if this peer
+     *
+     * @return The size in bytes used to backup chunks or -1 if there's any error
+     */
     public long calculateOccupation() {
         try {
             return directorySize(new File(PEER_DIRECTORY));
@@ -336,22 +465,43 @@ public class PeerInternalState implements Serializable {
         return -1;
     }
 
+    /**
+     * Method to set a new capacity for this peer to use
+     *
+     * @param capacity New value for this peer's capacity
+     */
     public void setCapacity(long capacity) {
         this.capacity = capacity;
     }
 
+    /**
+     * @return This peer's current occupation
+     */
     public long getOccupation() {
         return occupation;
     }
 
+    /**
+     * @return This peer's current capacity
+     */
     public long getCapacity() {
         return capacity;
     }
 
+    /**
+     * @return This peer's file system directory
+     */
     public String getPeerDirectory() {
         return PEER_DIRECTORY;
     }
 
+    /**
+     * Method to calculate a directory size in bytes using Java's NIO walker
+     *
+     * @param dir Directory used to calculate the size
+     * @return The size in bytes for the directory passed as parameter
+     * @throws IOException On error walking the tree
+     */
     public long directorySize(File dir) throws IOException {
         Path folder = dir.toPath();
         return Files.walk(folder)

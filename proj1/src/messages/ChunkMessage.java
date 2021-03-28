@@ -11,10 +11,14 @@ import java.util.concurrent.ExecutorService;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+/**
+ * CHUNK Message Data Class
+ */
 public class ChunkMessage extends Message {
     private InetAddress address;
     private int port;
 
+    //! Not documented
     public ChunkMessage(String protocolVersion, int senderId, String fileId, int chunkNo, byte[] body) {
         super(protocolVersion, "CHUNK", senderId, fileId, chunkNo, 0, body);
 
@@ -32,14 +36,17 @@ public class ChunkMessage extends Message {
         }
     }
 
+    //! Not documented
     public int getPort() {
         return port;
     }
 
+    //! Not documented
     public InetAddress getAddress() {
         return address;
     }
 
+    //! Not documented
     @Override
     public byte[] encodeToSend() {
         byte[] header = String.format("%s %s %s %s %d \r\n\r\n",
@@ -55,11 +62,13 @@ public class ChunkMessage extends Message {
         return toSend;
     }
 
+    //! Not documented
     @Override
     public Task createTask(Peer peer) {
         return new ChunkTask(this, peer);
     }
 
+    //! Not documented
     @Override
     public ExecutorService getWorker(Peer peer) {
         return peer.getAcknowledgmentsExecutor();
