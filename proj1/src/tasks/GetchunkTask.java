@@ -7,11 +7,22 @@ import peer.Peer;
 
 import java.util.concurrent.TimeUnit;
 
+/**
+ * Task responsible to process a GETCHUNK Message
+ */
 public class GetchunkTask extends Task {
+    /**
+     * @param message GETCHUNK message received on the multicast channel
+     * @param peer    Peer responsible for this task
+     */
     public GetchunkTask(GetchunkMessage message, Peer peer) {
         super(message, peer);
     }
 
+    /**
+     * This task will perform the necessary checks to send a chunk to the requesting peer,
+     * and then it will start a SendChunk task after a random delay of 0-400ms
+     */
     @Override
     public void run() {
         if (!this.peer.getInternalState().getSavedChunksMap().containsKey(message.getFileId() + "_" + message.getChunkNo())) {

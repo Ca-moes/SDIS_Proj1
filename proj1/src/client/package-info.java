@@ -1,4 +1,4 @@
 /**
- * This package contains classes related to client functionalities
+ * Contains classes and methods related to client functionalities and operations
  */
 package client;
