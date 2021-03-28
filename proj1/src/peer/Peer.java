@@ -7,26 +7,27 @@ import messages.GeneralKenobi;
 import messages.Message;
 import messages.MulticastService;
 import messages.RemovedMessage;
-import tasks.StoredTask;
-import tasks.Task;
 
 import java.io.IOException;
-import java.lang.reflect.Executable;
 import java.net.InetAddress;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+/**
+ * Main class on this serverless system, everything related directly with a Peer
+ * is listed here, the peer uses some functionalities from other auxiliary classes,
+ * mainly its Internal State as it's managed by a class named PeerInternalState
+ *
+ * @see PeerInternalState
+ */
 public class Peer implements InitiatorPeer {
     private MulticastService multicastControl;
     private MulticastService multicastDataBackup;
@@ -45,6 +46,13 @@ public class Peer implements InitiatorPeer {
 
     private final PeerInternalState internalState;
 
+    /**
+     * Main method, every peer starts here, the arguments are parsed, the database is either loaded or
+     * created if it does not exist, and the 3 multicast channels are created and started
+     *
+     * @param args Arguments received in the command line at the invocation of the program
+     * @throws Exception If anything fails starting the Peer
+     */
     public static void main(String[] args) throws Exception {
         if (args.length != 6) {
             System.out.println("Usage: java Peer <MC> <MDB> <MDR> <Protocol Version> <Peer ID> <Service Access Point>");
@@ -68,6 +76,16 @@ public class Peer implements InitiatorPeer {
         peer.start();
     }
 
+    /**
+     * Main constructor for a peer: it takes the arguments passed in the command line, parses them and instantiates
+     * the fields accordingly, here we also initialize the executors and schedulers. As mentioned on the report
+     * we have 4 executors/schedulers for our concurrency model. For the Restore Enhancement we also define here the
+     * IP address of this peer, and finally we load the database if it exists on the file system, otherwise a new database
+     * is created from scratch
+     *
+     * @param args Arguments passed in the command line at the start
+     * @throws IOException On a problem parsing the arguments or getting the localhost IP
+     */
     public Peer(String[] args) throws IOException {
         parseArgs(args);
 
@@ -81,6 +99,12 @@ public class Peer implements InitiatorPeer {
         this.internalState = PeerInternalState.loadInternalState(this);
     }
 
+    /**
+     * Method to fire up the peer, it will start the channels on separate threads and will print some
+     * useful messages on the default output stream, also, if this peer is enhanced it will send a
+     * "General Kenobi" Message signaling other enhanced peers that this peer is now online. This enhancement
+     * corresponds to the Delete Protocol. If this peer was online at the moment of a deletion this will come in handy.
+     */
     private void start() {
         new Thread(this.multicastControl).start();
         new Thread(this.multicastDataBackup).start();
@@ -104,6 +128,13 @@ public class Peer implements InitiatorPeer {
         }
     }
 
+    /**
+     * Method to parse the arguments
+     *
+     * @param args Arguments passed in the command line
+     * @throws IOException On error reading the IP addresses or creating a MulticastService
+     * @see MulticastService
+     */
     private void parseArgs(String[] args) throws IOException {
         this.protocolVersion = args[0];
         this.peerId = Integer.parseInt(args[1]);
@@ -132,34 +163,62 @@ public class Peer implements InitiatorPeer {
         }
     }
 
+    /**
+     * @return The multicast control channel
+     */
     public MulticastService getMulticastControl() {
         return multicastControl;
     }
 
+    /**
+     * @return The multicast data backup channel
+     */
     public MulticastService getMulticastDataBackup() {
         return multicastDataBackup;
     }
 
+    /**
+     * @return The multicast data restore channel
+     */
     public MulticastService getMulticastDataRestore() {
         return multicastDataRestore;
     }
 
+    /**
+     * @return This peer's Service Access Point for RMI connections
+     */
     public String getServiceAccessPoint() {
         return serviceAccessPoint;
     }
 
+    /**
+     * @return This peer's ID
+     */
     public int getPeerId() {
         return peerId;
     }
 
+    /**
+     * @return This peer's Protocol Version
+     */
     public String getProtocolVersion() {
         return protocolVersion;
     }
 
+    /**
+     * @return This peer's Internal State
+     */
     public PeerInternalState getInternalState() {
         return internalState;
     }
 
+    /**
+     * This method will start the backup procedure for a file with a given replication degree, to put this simple,
+     * this method reads the file in chunks of 64KB (64000B) and for each it will start a BackupChunk job
+     *
+     * @see InitiatorPeer
+     * @see BackupChunk
+     */
     @Override
     public void backup(String pathname, int replicationDegree) throws RemoteException {
         System.out.println("[CLIENT] BACKUP PROTOCOL");
@@ -181,7 +240,7 @@ public class Peer implements InitiatorPeer {
                 chunk.setBody(Arrays.copyOf(buffer, buffer.length));
                 this.internalState.getSentChunksMap().put(chunk.getChunkId(), chunk);
 
-                System.out.printf("[%s] SENDING CHUNK: %d of %d\n", pathname, i+1, numberOfChunks);
+                System.out.printf("[%s] SENDING CHUNK: %d of %d\n", pathname, i + 1, numberOfChunks);
                 this.IOExecutor.submit(new BackupChunk(chunk, this, 1));
                 i++;
             }
@@ -191,7 +250,7 @@ public class Peer implements InitiatorPeer {
                 chunk.setBody(new byte[0]);
                 this.internalState.getSentChunksMap().put(chunk.getChunkId(), chunk);
 
-                System.out.printf("[%s] SENDING CHUNK: %d of %d\n", pathname, i+1, numberOfChunks);
+                System.out.printf("[%s] SENDING CHUNK: %d of %d\n", pathname, i + 1, numberOfChunks);
                 this.IOExecutor.submit(new BackupChunk(chunk, this, 1));
             }
         } catch (IOException e) {
@@ -199,6 +258,13 @@ public class Peer implements InitiatorPeer {
         }
     }
 
+    /**
+     * This method will start a restoration operation, put simply, it will create a FutureFile and
+     * call the <code>restoreFile</code> method if the peer has that file backed up
+     *
+     * @see InitiatorPeer
+     * @see FutureFile#restoreFile()
+     */
     @Override
     public void restore(String pathname) throws RemoteException {
         System.out.println("[CLIENT] RESTORE PROTOCOL");
@@ -215,6 +281,13 @@ public class Peer implements InitiatorPeer {
         }
     }
 
+    /**
+     * This method will trigger a delete operation, starting a DeleteFile job for a file ID if the pathname
+     * is present on the backed up files map.
+     *
+     * @see PeerInternalState
+     * @see DeleteFile
+     */
     @Override
     public void delete(String pathname) throws RemoteException {
         System.out.println("[CLIENT] DELETE PROTOCOL");
@@ -230,6 +303,15 @@ public class Peer implements InitiatorPeer {
         }
     }
 
+    /**
+     * This method will start a reclaim operation, if the maxDiskSpace is zero it will delete every single chunk and
+     * set the default capacity defined in Constants, otherwise it will interrupt the PUTCHUNK tasks and prevent them from
+     * starting for 60 seconds and delete chunks until it reaches the desired Maximum Space, starting with the chunks with
+     * higher replication degree than the necessary
+     *
+     * @see PeerInternalState#forceFreeSpace()
+     * @see Constants#DEFAULT_CAPACITY
+     */
     @Override
     public void reclaim(long maxDiskSpace) throws RemoteException {
         System.out.println("[CLIENT] RECLAIM PROTOCOL");
@@ -248,17 +330,29 @@ public class Peer implements InitiatorPeer {
                 Message message = new RemovedMessage(this.protocolVersion, this.peerId, chunk.getFileId(), chunk.getChunkNo());
                 this.multicastControl.sendMessage(message);
             }
+            this.internalState.setCapacity(Constants.DEFAULT_CAPACITY);
             this.internalState.commit();
             return;
         }
 
-        this.internalState.setCapacity(maxDiskSpace*1000);
+        this.internalState.setCapacity(maxDiskSpace * 1000);
         if (maxDiskSpace <= this.internalState.getCapacity())
             this.internalState.interruptPutchunks();
 
         this.internalState.forceFreeSpace();
     }
 
+    /**
+     * This method will trigger a State Operation, we went a bit further on this than expected,
+     * as reading the data on the command line can be a bit hard on the eyes we created a class
+     * designed to assemble a webpage just to display the peer's state, made with love and bootstrap.
+     * <p>
+     * Of course, this "enhancement" changes nothing overall, we did it just for fun, the default
+     * behaviour is still here, the requested information is still being printed to the standard output stream
+     *
+     * @see ReportMaker
+     * @see PeerInternalState#toString()
+     */
     @Override
     public String state() throws RemoteException {
         ReportMaker.toHTML(this.internalState);
@@ -266,26 +360,44 @@ public class Peer implements InitiatorPeer {
         return this.internalState.toString();
     }
 
+    /**
+     * @return <code>true</code> if this peer is enhanced
+     */
     public boolean isEnhanced() {
         return !protocolVersion.equals("1.0");
     }
 
+    /**
+     * @return This peer's address
+     */
     public InetAddress getAddress() {
         return address;
     }
 
+    /**
+     * @return The triage worker
+     */
     public ExecutorService getTriageExecutor() {
         return triageExecutor;
     }
 
+    /**
+     * @return The Requests worker
+     */
     public ScheduledExecutorService getRequestsExecutor() {
         return requestsExecutor;
     }
 
+    /**
+     * @return The Responses Worker (Acknowledgements)
+     */
     public ExecutorService getAcknowledgmentsExecutor() {
         return acknowledgmentsExecutor;
     }
 
+    /**
+     * @return The IO worker
+     */
     public ExecutorService getIOExecutor() {
         return IOExecutor;
     }

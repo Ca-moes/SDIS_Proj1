@@ -12,6 +12,10 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * This class represents a useless class for the project grade at least, but we has some fun
+ * while designing it, this class builds a Report in a HTML form, using bootstrap and basic HTML.
+ */
 public class ReportMaker {
     private final static String header = "<!DOCTYPE html>\n" +
             "<html lang=\"en\">\n" +
@@ -57,10 +61,19 @@ public class ReportMaker {
             "                <div class=\"col-2\">Size: %.2fKB</div>\n" +
             "            </li>";
 
+    /**
+     * Method to convert the PeerInternalState to an HTML file, the web page will open after the creation is done,
+     * and will be stored with a hashed filename using SHA256 as we have already developed that method in IOUtils
+     *
+     * @param state The Peer's Internal State to use here
+     * @see PeerInternalState
+     * @see IOUtils#hashToASCII(String)
+     * @see Peer#state()
+     */
     public static void toHTML(PeerInternalState state) {
         StringBuilder builder = new StringBuilder();
         builder.append(header);
-        builder.append(String.format(title,state.peer.getPeerId()));
+        builder.append(String.format(title, state.peer.getPeerId()));
         builder.append(String.format(storage, state.getCapacity() / 1000.0, state.getOccupation() / 1000.0));
         builder.append(" <div class=\"p-3\">\n" +
                 "        <h2>Backed Up Files</h2>\n" +
