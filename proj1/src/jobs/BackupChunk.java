@@ -37,6 +37,11 @@ public class BackupChunk implements Runnable {
      */
     @Override
     public void run() {
+        if (this.timeout >= 32) {
+            System.out.println("[BACKUP] Chunk Could not be Backed Up - " + chunk.getChunkId());
+            return;
+        }
+
         Message message = new PutchunkMessage(
                 this.peer.getProtocolVersion(),
                 this.peer.getPeerId(),
