@@ -2,7 +2,6 @@ package peer;
 
 import files.*;
 
-import java.awt.*;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -117,7 +116,6 @@ public class ReportMaker {
         File report = new File(sha + ".html");
         try {
             Files.write(report.toPath(), html.getBytes(StandardCharsets.UTF_8));
-            Desktop.getDesktop().browse(report.toURI());
         } catch (IOException e) {
             e.printStackTrace();
         }

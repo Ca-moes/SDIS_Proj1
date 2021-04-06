@@ -27,4 +27,4 @@ rmiregistry &
 
 sleep 1
 
-java peer.Peer 2.0 "$INDEX" peer"$INDEX" 224.1.1.1:81 224.1.1.2:82 224.1.1.3:83
+java peer.Peer 2.0 "$INDEX" peer"$INDEX" 224.1.1.1 81 224.1.1.2 82 224.1.1.3 83
