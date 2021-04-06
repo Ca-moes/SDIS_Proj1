@@ -29,17 +29,7 @@ public class IOUtils {
         String name = file.getName();
         String modificationDate = String.valueOf(attributes.creationTime().toMillis());
 
-        byte[] myBuffer = new byte[64000];
-        InputStream in = new FileInputStream(pathname);
-
-        String dataSHA = "";
-
-        while ((in.read(myBuffer, 0, 64000) != -1)) {
-            String hex = bytesToHex(myBuffer);
-            dataSHA = hashToASCII(dataSHA + hex);
-        }
-
-        return hashToASCII(name + modificationDate + dataSHA);
+        return hashToASCII(name + modificationDate);
     }
 
     /**

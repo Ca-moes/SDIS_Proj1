@@ -54,9 +54,9 @@ public class Peer implements InitiatorPeer {
      * @throws Exception If anything fails starting the Peer
      */
     public static void main(String[] args) throws Exception {
-        if (args.length != 6) {
-            System.out.println("Usage: java Peer <MC> <MDB> <MDR> <Protocol Version> <Peer ID> <Service Access Point>");
-            System.out.println("MC MDB MDR: <IP>");
+        if (args.length != 9) {
+            System.out.println("Usage: java Peer <Protocol Version> <Peer ID> <Service Access Point> <MC> <MDB> <MDR>");
+            System.out.println("MC MDB MDR: <IP> <PORT>");
             System.out.println("Service Access Point: RMI bind");
             return;
         }
@@ -139,28 +139,10 @@ public class Peer implements InitiatorPeer {
         this.protocolVersion = args[0];
         this.peerId = Integer.parseInt(args[1]);
         this.serviceAccessPoint = args[2];
-        // parse multicast control
-        Pattern p = Pattern.compile("^\\s*(.*?):(\\d+)\\s*$");
-        Matcher m = p.matcher(args[3]);
-        if (m.matches()) {
-            InetAddress host = InetAddress.getByName(m.group(1));
-            int port = Integer.parseInt(m.group(2));
-            this.multicastControl = new MulticastService(host, port, this, "MC");
-        }
-        // parse multicast data backup
-        m = p.matcher(args[4]);
-        if (m.matches()) {
-            InetAddress host = InetAddress.getByName(m.group(1));
-            int port = Integer.parseInt(m.group(2));
-            this.multicastDataBackup = new MulticastService(host, port, this, "MDB");
-        }
-        // parse multicast data restore
-        m = p.matcher(args[5]);
-        if (m.matches()) {
-            InetAddress host = InetAddress.getByName(m.group(1));
-            int port = Integer.parseInt(m.group(2));
-            this.multicastDataRestore = new MulticastService(host, port, this, "MDR");
-        }
+
+        this.multicastControl = new MulticastService(InetAddress.getByName(args[3]), Integer.parseInt(args[4]), this, "MC");
+        this.multicastDataBackup = new MulticastService(InetAddress.getByName(args[5]), Integer.parseInt(args[6]), this, "MDB");
+        this.multicastDataRestore = new MulticastService(InetAddress.getByName(args[7]), Integer.parseInt(args[8]), this, "MDR");
     }
 
     /**
