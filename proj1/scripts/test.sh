@@ -34,7 +34,7 @@ BACKUP)
 	rep_deg=$4
 	;;
 RESTORE)
-	if [ "$#" -ne 4 ];
+	if [ "$#" -ne 3 ];
 	then
 		echo "Usage: $0 <peer_app> RESTORE <filename>"
 	fi
