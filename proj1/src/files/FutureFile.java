@@ -86,11 +86,14 @@ public class FutureFile {
             SentChunk chunk = promised.get();
 
             if (chunk == null || chunk.getBody() == null) {
-                System.out.println("[PEER] One or more chunks are missing!");
+                System.out.println("[PEER] One or more chunks are missing! Aborting...");
+                randomAccessFile.close();
                 return;
             }
             if (chunk.getChunkNo() != this.numChunks - 1 && chunk.getBody().length != Constants.CHUNK_SIZE) {
-                System.out.println("[PEER] Received a chunk with less than 64KB but it was not the last chunk!");
+                System.out.println("[PEER] Received a chunk with less than 64KB but it was not the last chunk! Aborting...");
+                randomAccessFile.close();
+                chunk.clearBody();
                 return;
             }
 
