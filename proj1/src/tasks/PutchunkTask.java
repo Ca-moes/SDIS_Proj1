@@ -2,6 +2,7 @@ package tasks;
 
 import files.SavedChunk;
 import jobs.SendStoredChunk;
+import jobs.SendStoredChunkVanilla;
 import messages.Message;
 import messages.PutchunkMessage;
 import messages.StoredMessage;
@@ -64,7 +65,12 @@ public class PutchunkTask extends Task {
             } else {
                 // there's enough space, wont even try to free some
                 peer.getInternalState().getSavedChunksMap().put(chunk.getChunkId(), chunk);
-                peer.getRequestsExecutor().schedule(new SendStoredChunk(chunk, peer, reply), this.getSleepTime(), TimeUnit.MILLISECONDS);
+
+                if (this.peer.isEnhanced()) {
+                    peer.getRequestsExecutor().schedule(new SendStoredChunk(chunk, peer, reply), this.getSleepTime(), TimeUnit.MILLISECONDS);
+                } else {
+                    peer.getRequestsExecutor().schedule(new SendStoredChunkVanilla(chunk, peer, reply), this.getSleepTime(), TimeUnit.MILLISECONDS);
+                }
             }
         }
     }
