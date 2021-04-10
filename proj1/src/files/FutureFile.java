@@ -24,7 +24,7 @@ public class FutureFile {
     private final int numChunks;
     private final List<SentChunk> sentChunks = new ArrayList<>();
 
-    private String restoredPathname = "%s/restored_%s";
+    private String restoredPathname = "restored_%s";
 
     /**
      * Constructor for the FutureFile given a file Id, a pathname and the responsible peer
@@ -46,7 +46,7 @@ public class FutureFile {
         }
 
         this.numChunks = sentChunks.size();
-        this.restoredPathname = String.format(restoredPathname, this.peer.getInternalState().getPeerDirectory(), new File(pathname).getName());
+        this.restoredPathname = String.format(restoredPathname, new File(pathname).getName());
     }
 
     /**
