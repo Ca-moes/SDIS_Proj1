@@ -10,11 +10,11 @@
 
 
 # Check number input arguments
-argc=$#
 
-if ((argc == 1 ))
+if [ "$#" -eq 1 ]
 then
 	peer_id=$1
+	rm -rf ./peer"${peer_id}"
 else 
 	echo "Usage: $0 [<peer_id>]]"
 	exit 1
