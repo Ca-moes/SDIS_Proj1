@@ -27,7 +27,7 @@ public class IOUtils {
 
         BasicFileAttributes attributes = Files.getFileAttributeView(file.toPath(), BasicFileAttributeView.class).readAttributes();
         String name = file.getName();
-        String modificationDate = String.valueOf(attributes.creationTime().toMillis());
+        String modificationDate = String.valueOf(attributes.lastModifiedTime().toMillis());
 
         return hashToASCII(name + modificationDate);
     }

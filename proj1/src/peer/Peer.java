@@ -8,8 +8,10 @@ import messages.Message;
 import messages.MulticastService;
 import messages.RemovedMessage;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.InetAddress;
+import java.nio.file.Path;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
@@ -204,13 +206,31 @@ public class Peer implements InitiatorPeer {
     @Override
     public void backup(String pathname, int replicationDegree) throws RemoteException {
         System.out.println("[CLIENT] BACKUP PROTOCOL");
-        System.out.printf("[CLIENT] Pathname: %s | Replication Degree: %d\n", pathname, replicationDegree);
 
         int numberOfChunks = IOUtils.getNumberOfChunks(pathname);
+        String original = pathname;
 
         try {
             BackedUpFile file = new BackedUpFile(pathname);
-            this.getInternalState().getBackedUpFilesMap().put(pathname, new ServerFile(pathname, file.getFileID(), replicationDegree, IOUtils.getSize(pathname)));
+            System.out.printf("[CLIENT] Pathname: %s | Replication Degree: %d\nFile ID: %s\n", pathname, replicationDegree, file.getFileID());
+
+            if (this.internalState.getBackedUpFilesMap().containsKey(pathname)) {
+                System.out.println("[BACKUP] There's already a backup for this pathname: " + pathname);
+                if (this.internalState.getBackedUpFilesMap().get(pathname).getFileId().equals(file.getFileID())) {
+                    System.out.println("[BACKUP] Delete this file before proceeding.");
+                    return;
+                }
+                else {
+                    File file1 = new File(pathname);
+                    Path path = file1.toPath();
+
+                    pathname = path.getParent() + "/dup_" + path.getFileName();
+
+                    System.out.println("[BACKUP] New version of file, adding prefix, new filename: " + pathname);
+                }
+            }
+
+            this.getInternalState().getBackedUpFilesMap().put(pathname, new ServerFile(original, file.getFileID(), replicationDegree, IOUtils.getSize(original)));
             this.getInternalState().commit();
 
             byte[] buffer;

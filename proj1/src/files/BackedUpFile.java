@@ -43,6 +43,8 @@ public class BackedUpFile {
         if ((size = this.chunkStream.read(myBuffer, 0, 64000)) != -1) {
             return Arrays.copyOfRange(myBuffer, 0, size);
         }
+
+        chunkStream.close();
         return null;
     }
 
