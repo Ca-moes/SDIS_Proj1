@@ -1,6 +1,6 @@
 # SDIS Project
 
-SDIS Project for group T4G05.
+SDIS Project for group T4G05. [Description](https://web.fe.up.pt/~pfs/aulas/sd2021/projs/proj1/proj1.html)
 
 Group members:
 
